@@ -49,11 +49,11 @@ entity SPI_MASTER is
         MOSI     : out std_logic;
         MISO     : in  std_logic;
         -- USER INTERFACE
-        DIN      : in  std_logic_vector(DATA_WIDTH-1 downto 0);
-        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, data on DIN are valid and will be transmit
-        READY    : out std_logic; -- when READY = 1, SPI master is ready to accept data on DIN
-        DOUT     : out std_logic_vector(DATA_WIDTH-1 downto 0);
-        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, data on DOUT are valid
+        DIN      : in  std_logic_vector(DATA_WIDTH-1 downto 0); -- input data
+        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid and can be accept
+        READY    : out std_logic; -- when READY = 1, SPI master is ready to accept input data
+        DOUT     : out std_logic_vector(DATA_WIDTH-1 downto 0); -- output data
+        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
 end SPI_MASTER;
 
@@ -98,7 +98,7 @@ begin
     spi_mosi_reg_en   <= spi_clk_falling_edge_en1;
     spi_bit_cnt_en    <= spi_clk_falling_edge_en1 AND NOT spi_chip_select_n;
     spi_clk_en_set    <= spi_clk_falling_edge_en0;
-    spi_dout_vld      <= spi_clk_falling_edge_en0 AND spi_last_bit;
+    spi_dout_vld      <= spi_clk_rising_edge_en1 AND spi_last_bit;
 
     SCLK  <= spi_clk_reg1;
     CS_N  <= spi_chip_select_n;
