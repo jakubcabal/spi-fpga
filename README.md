@@ -27,8 +27,8 @@ Please read [LICENSE file](LICENSE).
 
 Generic name | Type | Default value | Generic description
 ---|:---:|:---:|:---
-CLK_FREQ | natural | 50 | System clock frequency in Hz.
-SCLK_FREQ | natural | 5 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
+CLK_FREQ | natural | 50e6 | System clock frequency in Hz.
+SCLK_FREQ | natural | 5e6 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
 SLAVE_COUNT | natural | 1 | Count of SPI slave controllers.
 
 ## Table of inputs and outputs ports:
