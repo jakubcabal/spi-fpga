@@ -34,9 +34,9 @@ use IEEE.MATH_REAL.ALL;
 
 entity SPI_MASTER is
     Generic (
-        CLK_FREQ    : natural := 50; -- set system clock frequency in MHz
-        SCLK_FREQ   : natural := 5;  -- set SPI clock frequency in MHz (must be < CLK_FREQ/9)
-        SLAVE_COUNT : natural := 1   -- count of SPI slaves
+        CLK_FREQ    : natural := 50e6; -- set system clock frequency in Hz
+        SCLK_FREQ   : natural := 5e6;  -- set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10)
+        SLAVE_COUNT : natural := 1     -- count of SPI slaves
     );
     Port (
         CLK      : in  std_logic; -- system clock
@@ -58,8 +58,7 @@ end SPI_MASTER;
 
 architecture RTL of SPI_MASTER is
 
-    constant DIVIDER_VALUE_REAL : real    := (real(CLK_FREQ)/real(SCLK_FREQ))/2.0;
-    constant DIVIDER_VALUE      : integer := integer(ceil(DIVIDER_VALUE_REAL));
+    constant DIVIDER_VALUE      : integer := CLK_FREQ/SCLK_FREQ;
     constant WIDTH_CLK_CNT      : integer := integer(ceil(log2(real(DIVIDER_VALUE))));
     constant WIDTH_ADDR         : integer := integer(ceil(log2(real(SLAVE_COUNT))));
 
@@ -84,7 +83,7 @@ architecture RTL of SPI_MASTER is
 
 begin
 
-    ASSERT (DIVIDER_VALUE_REAL > 4.5) REPORT "SCLK_FREQ must be < CLK_FREQ/9" SEVERITY ERROR;
+    ASSERT (DIVIDER_VALUE >= 10) REPORT "condition: SCLK_FREQ <= CLK_FREQ/10" SEVERITY ERROR;
 
     load_data <= master_ready and DIN_VLD;
     SCLK      <= spi_clk_reg and master_transmit;

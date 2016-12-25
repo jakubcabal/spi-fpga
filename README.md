@@ -10,8 +10,8 @@ The SPI master and SPI slave controllers have been simulated.
 
 CONTROLLER | LE (LUT) | FF | BRAM | Fmax
 :---:|:---:|:---:|:---:|:---:
-SPI master | 36 | 25 | 0 | 346.9 MHz
-SPI slave | 26 | 19 | 0 | 438.7 MHz
+SPI master | 39 | 26 | 0 | 264.7 MHz
+SPI slave | 23 | 16 | 0 | 359.7 MHz
 
 *Synthesis have been performed using Quartus Prime 16.1 Lite Edition for FPGA Altera Cyclone IV with these settings: CLK_FREQ = 50 MHz, SCLK_FREQ = 5 MHz, SLAVE_COUNT = 1.*
 
@@ -27,8 +27,8 @@ Please read [LICENSE file](LICENSE).
 
 Generic name | Type | Default value | Generic description
 ---|:---:|:---:|:---
-CLK_FREQ | natural | 50 | System clock frequency in MHz.
-SCLK_FREQ | natural | 5 | SPI clock frequency in MHz (must be < CLK_FREQ/9).
+CLK_FREQ | natural | 50 | System clock frequency in Hz.
+SCLK_FREQ | natural | 5 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
 SLAVE_COUNT | natural | 1 | Count of SPI slave controllers.
 
 ## Table of inputs and outputs ports:

@@ -28,7 +28,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-use IEEE.MATH_REAL.ALL;
 
 -- THE SPI SLAVE MODULE SUPPORT ONLY SPI MODE 0 (CPOL=0, CPHA=0)!!!
 
@@ -59,11 +58,9 @@ architecture RTL of SPI_SLAVE is
     signal data_shreg         : std_logic_vector(7 downto 0);
     signal bit_cnt            : unsigned(2 downto 0);
     signal last_bit_en        : std_logic;
-    signal slave_transmit_end : std_logic;
     signal slave_ready        : std_logic;
-
-    type state is (idle, sync, transmit, transmit_end);
-    signal present_state, next_state : state;
+    signal data_busy_reg      : std_logic;
+    signal rx_data_vld        : std_logic;
 
 begin
 
@@ -92,6 +89,29 @@ begin
 
     spi_clk_fedge_en <= not SCLK and spi_clk_reg;
     spi_clk_redge_en <= SCLK and not spi_clk_reg;
+
+    -- -------------------------------------------------------------------------
+    --  DATA BUSY REGISTER
+    -- -------------------------------------------------------------------------
+
+    data_busy_reg_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            if (RST = '1') then
+                data_busy_reg <= '0';
+            else
+                if (DIN_VLD = '1' and CS_N = '1') then
+                    data_busy_reg <= '1';
+                elsif (rx_data_vld = '1') then
+                    data_busy_reg <= '0';
+                else
+                    data_busy_reg <= data_busy_reg;
+                end if;
+            end if;
+        end if;
+    end process;
+
+    slave_ready <= CS_N and not data_busy_reg;
 
     -- -------------------------------------------------------------------------
     --  MISO REGISTER
@@ -127,13 +147,15 @@ begin
     --  DATA OUT VALID FLAG REGISTER
     -- -------------------------------------------------------------------------
 
+    rx_data_vld <= spi_clk_fedge_en and last_bit_en;
+
     dout_vld_reg_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
             if (RST = '1') then
                 DOUT_VLD <= '0';
             else
-                DOUT_VLD <= slave_transmit_end;
+                DOUT_VLD <= rx_data_vld;
             end if;
         end if;
     end process;
@@ -174,88 +196,6 @@ begin
                 end if;
             end if;
         end if;
-    end process;
-
-    -- -------------------------------------------------------------------------
-    --  SPI SLAVE FSM
-    -- -------------------------------------------------------------------------
-
-    -- PRESENT STATE REGISTER
-    fsm_present_state_p : process (CLK)
-    begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
-                present_state <= idle;
-            else
-                present_state <= next_state;
-            end if;
-        end if;
-    end process;
-
-    -- NEXT STATE LOGIC
-    fsm_next_state_p : process (present_state, DIN_VLD, CS_N, spi_clk_fedge_en,
-                                last_bit_en)
-    begin
-
-        case present_state is
-
-            when idle =>
-                if (DIN_VLD = '1') then
-                    next_state <= sync;
-                else
-                    next_state <= idle;
-                end if;
-
-            when sync =>
-                if (CS_N = '0') then
-                    next_state <= transmit;
-                else
-                    next_state <= sync;
-                end if;
-
-            when transmit =>
-                if (spi_clk_fedge_en = '1' and last_bit_en = '1') then
-                    next_state <= transmit_end;
-                else
-                    next_state <= transmit;
-                end if;
-
-            when transmit_end =>
-                next_state <= idle;
-
-            when others =>
-                next_state <= idle;
-
-        end case;
-    end process;
-
-    -- OUTPUTS LOGIC
-    fsm_outputs_p : process (present_state)
-    begin
-
-        case present_state is
-
-            when idle =>
-                slave_ready        <= '1';
-                slave_transmit_end <= '0';
-
-            when sync =>
-                slave_ready        <= '0';
-                slave_transmit_end <= '0';
-
-            when transmit =>
-                slave_ready        <= '0';
-                slave_transmit_end <= '0';
-
-            when transmit_end =>
-                slave_ready        <= '0';
-                slave_transmit_end <= '1';
-
-            when others =>
-                slave_ready        <= '0';
-                slave_transmit_end <= '0';
-
-        end case;
     end process;
 
 end RTL;

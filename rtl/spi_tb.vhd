@@ -38,13 +38,13 @@ architecture SIM of SPI_TB is
     constant CLK_PERIOD  : time := 20 ns;
     constant SLAVE_COUNT : integer := 4;
 
-    signal CLK      : std_logic := '0';
-    signal RST      : std_logic := '1';
+    signal CLK        : std_logic := '0';
+    signal RST        : std_logic := '1';
 
-    signal sclk     : std_logic;
-    signal cs_n     : std_logic_vector(SLAVE_COUNT-1 downto 0);
-    signal miso     : std_logic;
-    signal mosi     : std_logic;
+    signal sclk       : std_logic;
+    signal cs_n       : std_logic_vector(SLAVE_COUNT-1 downto 0);
+    signal miso       : std_logic;
+    signal mosi       : std_logic;
 
     signal m_addr     : std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0);
     signal m_din      : std_logic_vector(7 downto 0);
@@ -63,9 +63,9 @@ begin
 
     master_i : entity work.SPI_MASTER
     generic map(
-        CLK_FREQ    => 50, -- set system clock frequency in MHz
-        SCLK_FREQ   => 5,  -- set SPI clock frequency in MHz (must be < CLK_FREQ/9)
-        SLAVE_COUNT => SLAVE_COUNT -- set SPI datawidth in bits
+        CLK_FREQ    => 50e6,
+        SCLK_FREQ   => 5e6,
+        SLAVE_COUNT => SLAVE_COUNT
     )
     port map (
         CLK      => CLK,
