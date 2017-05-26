@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 # PROJECT: SPI MASTER AND SLAVE FOR FPGA
 #-------------------------------------------------------------------------------
-# NAME:    TIMING CONSTRAINTS
+# NAME:    SIMULATION TCL SCRIPT FOR MODELSIM
 # AUTHORS: Jakub Cabal <xcabal05@stud.feec.vutbr.cz>
 # LICENSE: LGPL-3.0, please read LICENSE file
 # WEBSITE: https://github.com/jakubcabal/spi-fpga
@@ -9,7 +9,7 @@
 # COPYRIGHT NOTICE:
 #-------------------------------------------------------------------------------
 # SPI MASTER AND SLAVE FOR FPGA
-# Copyright (C) 2016 Jakub Cabal
+# Copyright (C) 2017 Jakub Cabal
 #
 # This source file is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -25,4 +25,14 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------
 
-create_clock -name CLK50 -period 20.000 [get_ports {CLK}]
+# Compile VHDL files
+vcom ../rtl/spi_master.vhd
+vcom ../rtl/spi_slave.vhd
+vcom ./spi_tb.vhd
+# Load testbench
+vsim work.spi_tb
+# Setup and start simulation
+add wave *
+add wave sim:/spi_tb/master_i/*
+add wave sim:/spi_tb/slave_i/*
+run 10 us

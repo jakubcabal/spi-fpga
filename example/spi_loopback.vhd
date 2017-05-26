@@ -220,7 +220,7 @@ begin
     master_i : entity work.SPI_MASTER
     generic map(
         CLK_FREQ    => 50e6,
-        SCLK_FREQ   => 5e6,
+        SCLK_FREQ   => 2e6,
         SLAVE_COUNT => 1
     )
     port map (

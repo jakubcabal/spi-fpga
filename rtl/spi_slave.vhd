@@ -67,6 +67,7 @@ begin
     load_data <= slave_ready and DIN_VLD;
     READY     <= slave_ready;
     DOUT      <= data_shreg;
+    DOUT_VLD  <= rx_data_vld;
 
     -- -------------------------------------------------------------------------
     --  SPI CLOCK REGISTER
@@ -94,13 +95,15 @@ begin
     --  DATA BUSY REGISTER
     -- -------------------------------------------------------------------------
 
+    rx_data_vld <= spi_clk_fedge_en and last_bit_en;
+
     data_busy_reg_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
             if (RST = '1') then
                 data_busy_reg <= '0';
             else
-                if (DIN_VLD = '1' and CS_N = '1') then
+                if (DIN_VLD = '1' and (CS_N = '1' or rx_data_vld = '1')) then
                     data_busy_reg <= '1';
                 elsif (rx_data_vld = '1') then
                     data_busy_reg <= '0';
@@ -111,7 +114,7 @@ begin
         end if;
     end process;
 
-    slave_ready <= CS_N and not data_busy_reg;
+    slave_ready <= (CS_N and not data_busy_reg) or rx_data_vld;
 
     -- -------------------------------------------------------------------------
     --  MISO REGISTER
@@ -139,23 +142,6 @@ begin
                 data_shreg <= DIN;
             elsif (spi_clk_redge_en = '1' and CS_N = '0') then
                 data_shreg <= data_shreg(6 downto 0) & MOSI;
-            end if;
-        end if;
-    end process;
-
-    -- -------------------------------------------------------------------------
-    --  DATA OUT VALID FLAG REGISTER
-    -- -------------------------------------------------------------------------
-
-    rx_data_vld <= spi_clk_fedge_en and last_bit_en;
-
-    dout_vld_reg_p : process (CLK)
-    begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
-                DOUT_VLD <= '0';
-            else
-                DOUT_VLD <= rx_data_vld;
             end if;
         end if;
     end process;
