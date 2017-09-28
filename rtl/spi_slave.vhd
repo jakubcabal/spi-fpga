@@ -36,15 +36,15 @@ entity SPI_SLAVE is
         CLK      : in  std_logic; -- system clock
         RST      : in  std_logic; -- high active synchronous reset
         -- SPI SLAVE INTERFACE
-        SCLK     : in  std_logic;
-        CS_N     : in  std_logic;
-        MOSI     : in  std_logic;
-        MISO     : out std_logic;
+        SCLK     : in  std_logic; -- SPI clock
+        CS_N     : in  std_logic; -- SPI chip select, active in low
+        MOSI     : in  std_logic; -- SPI serial data from master to slave
+        MISO     : out std_logic; -- SPI serial data from slave to master
         -- USER INTERFACE
-        READY    : out std_logic; -- when READY = 1, valid input data are accept
-        DIN      : in  std_logic_vector(7 downto 0); -- input data for master
+        DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI master
         DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
-        DOUT     : out std_logic_vector(7 downto 0); -- output data from master
+        READY    : out std_logic; -- when READY = 1, valid input data are accept
+        DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI master
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
 end SPI_SLAVE;
