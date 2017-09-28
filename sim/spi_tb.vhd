@@ -48,6 +48,7 @@ architecture SIM of SPI_TB is
 
     signal m_addr     : std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0);
     signal m_din      : std_logic_vector(7 downto 0);
+    signal m_din_last : std_logic;
     signal m_din_vld  : std_logic;
     signal m_ready    : std_logic;
     signal m_dout     : std_logic_vector(7 downto 0);
@@ -77,9 +78,10 @@ begin
         MISO     => miso,
         -- USER INTERFACE
         ADDR     => m_addr,
-        READY    => m_ready,
         DIN      => m_din,
+        DIN_LAST => m_din_last,
         DIN_VLD  => m_din_vld,
+        READY    => m_ready,
         DOUT     => m_dout,
         DOUT_VLD => m_dout_vld
     );
@@ -94,9 +96,9 @@ begin
         MOSI     => mosi,
         MISO     => miso,
         -- USER INTERFACE
-        READY    => s_ready,
         DIN      => s_din,
         DIN_VLD  => s_din_vld,
+        READY    => s_ready,
         DOUT     => s_dout,
         DOUT_VLD => s_dout_vld
     );
@@ -122,6 +124,7 @@ begin
         m_addr <= (others => '0');
         m_din <= (others => 'Z');
         m_din_vld <= '0';
+        m_din_last <= '0';
 
         wait until RST = '0';
         wait for 30 ns;
@@ -129,6 +132,7 @@ begin
 
         m_din <= X"12";
         m_din_vld <= '1';
+        m_din_last <= '0';
         wait until m_ready = '0';
 
         m_din <= (others => '0');
@@ -140,10 +144,12 @@ begin
 
         m_din <= X"F4";
         m_din_vld <= '1';
+        m_din_last <= '1';
         wait until m_ready = '0';
 
         m_din <= X"47";
         m_din_vld <= '1';
+        m_din_last <= '1';
         wait until m_ready = '0';
 
         m_din <= (others => '0');

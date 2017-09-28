@@ -42,16 +42,18 @@ entity SPI_MASTER is
         CLK      : in  std_logic; -- system clock
         RST      : in  std_logic; -- high active synchronous reset
         -- SPI MASTER INTERFACE
-        SCLK     : out std_logic;
-        CS_N     : out std_logic_vector(SLAVE_COUNT-1 downto 0);
-        MOSI     : out std_logic;
-        MISO     : in  std_logic;
-        -- USER INTERFACE
-        ADDR     : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- slave address
-        READY    : out std_logic; -- when READY = 1, SPI master is ready to accept input data
-        DIN      : in  std_logic_vector(7 downto 0); -- input data for slave
-        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid and can be accept
-        DOUT     : out std_logic_vector(7 downto 0); -- output data from slave
+        SCLK     : out std_logic; -- SPI clock
+        CS_N     : out std_logic_vector(SLAVE_COUNT-1 downto 0); -- SPI chip select, active in low
+        MOSI     : out std_logic; -- SPI serial data from master to slave
+        MISO     : in  std_logic; -- SPI serial data from slave to master
+        -- INPUT USER INTERFACE
+        ADDR     : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
+        DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI slave
+        DIN_LAST : in  std_logic; -- when DIN_LAST = 1, after transmit these input data is asserted CS_N
+        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
+        READY    : out std_logic; -- when READY = 1, valid input data are accept
+        -- OUTPUT USER INTERFACE
+        DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI slave
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
 end SPI_MASTER;
@@ -68,6 +70,7 @@ architecture RTL of SPI_MASTER is
     signal sys_clk_cnt_rst      : std_logic;
     signal spi_clk              : std_logic;
     signal spi_clk_en           : std_logic;
+    signal din_last_reg_n       : std_logic;
     signal first_edge_en        : std_logic;
     signal second_edge_en       : std_logic;
     signal chip_select_n        : std_logic;
@@ -80,7 +83,7 @@ architecture RTL of SPI_MASTER is
     signal rx_data_vld          : std_logic;
     signal master_ready         : std_logic;
 
-    type state is (idle, first_edge, second_edge, transmit_end, disable_cs);
+    type state is (idle, first_edge, second_edge, transmit_end, transmit_gap);
     signal present_state, next_state : state;
 
 begin
@@ -89,9 +92,7 @@ begin
 
     load_data <= master_ready and DIN_VLD;
     READY     <= master_ready;
-    DOUT      <= shreg;
-    DOUT_VLD  <= rx_data_vld;
-
+    
     -- -------------------------------------------------------------------------
     --  SYSTEM CLOCK COUNTER
     -- -------------------------------------------------------------------------
@@ -128,6 +129,24 @@ begin
     SCLK <= spi_clk;
 
     -- -------------------------------------------------------------------------
+    --  BIT COUNTER
+    -- -------------------------------------------------------------------------
+
+    bit_cnt_max <= '1' when (bit_cnt = "111") else '0';
+    bit_cnt_rst <= RST or not spi_clk_en;
+
+    bit_cnt_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            if (bit_cnt_rst = '1') then
+                bit_cnt <= (others => '0');
+            elsif (second_edge_en = '1') then
+                bit_cnt <= bit_cnt + 1;
+            end if;
+        end if;
+    end process;
+
+    -- -------------------------------------------------------------------------
     --  SPI MASTER ADDRESSING
     -- -------------------------------------------------------------------------
 
@@ -152,6 +171,21 @@ begin
             end if;
         end process;
     end generate;
+
+    -- -------------------------------------------------------------------------
+    --  DIN LAST RESISTER
+    -- -------------------------------------------------------------------------
+
+    din_last_reg_n_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            if (RST = '1') then
+                din_last_reg_n <= '0';
+            elsif (load_data = '1') then
+                din_last_reg_n <= not DIN_LAST;
+            end if;
+        end if;
+    end process;
 
     -- -------------------------------------------------------------------------
     --  MISO SAMPLE REGISTER
@@ -181,22 +215,20 @@ begin
         end if;
     end process;
 
+    DOUT <= shreg;
     MOSI <= shreg(7);
-
+    
     -- -------------------------------------------------------------------------
-    --  BIT COUNTER
+    --  DATA OUT VALID RESISTER
     -- -------------------------------------------------------------------------
 
-    bit_cnt_max <= '1' when (bit_cnt = "111") else '0';
-    bit_cnt_rst <= RST or not spi_clk_en;
-
-    bit_cnt_p : process (CLK)
+    dout_vld_reg_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
-            if (bit_cnt_rst = '1') then
-                bit_cnt <= (others => '0');
-            elsif (second_edge_en = '1') then
-                bit_cnt <= bit_cnt + 1;
+            if (RST = '1') then
+                DOUT_VLD <= '0';
+            else
+                DOUT_VLD <= rx_data_vld;
             end if;
         end if;
     end process;
@@ -221,9 +253,7 @@ begin
     fsm_next_state_p : process (present_state, DIN_VLD, sys_clk_cnt_max,
                                 bit_cnt_max)
     begin
-
         case present_state is
-
             when idle =>
                 if (DIN_VLD = '1') then
                     next_state <= first_edge;
@@ -239,43 +269,42 @@ begin
                 end if;
 
             when second_edge =>
-                if (sys_clk_cnt_max = '1' and bit_cnt_max = '0') then
-                    next_state <= first_edge;
-                elsif (sys_clk_cnt_max = '1' and bit_cnt_max = '1') then
-                    next_state <= transmit_end;
+                if (sys_clk_cnt_max = '1') then
+                    if (bit_cnt_max = '1') then
+                        next_state <= transmit_end;
+                    else
+                        next_state <= first_edge;
+                    end if;
                 else
                     next_state <= second_edge;
                 end if;
 
             when transmit_end =>
-                if (DIN_VLD = '1') then
-                    next_state <= first_edge;
+                if (sys_clk_cnt_max = '1') then
+                    next_state <= transmit_gap;
                 else
-                    next_state <= disable_cs;
+                    next_state <= transmit_end;
                 end if;
 
-            when disable_cs =>
+            when transmit_gap =>
                 if (sys_clk_cnt_max = '1') then
                     next_state <= idle;
                 else
-                    next_state <= disable_cs;
+                    next_state <= transmit_gap;
                 end if;
 
             when others =>
                 next_state <= idle;
-
         end case;
     end process;
 
     -- OUTPUTS LOGIC
-    fsm_outputs_p : process (present_state, sys_clk_cnt_max)
+    fsm_outputs_p : process (present_state, din_last_reg_n, sys_clk_cnt_max)
     begin
-
         case present_state is
-
             when idle =>
                 master_ready   <= '1';
-                chip_select_n  <= '1';
+                chip_select_n  <= not din_last_reg_n;
                 spi_clk_en     <= '0';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
@@ -298,16 +327,16 @@ begin
                 rx_data_vld    <= '0';
 
             when transmit_end =>
-                master_ready   <= '1';
+                master_ready   <= '0';
                 chip_select_n  <= '0';
                 spi_clk_en     <= '0';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
-                rx_data_vld    <= '1';
+                rx_data_vld    <= sys_clk_cnt_max;
 
-            when disable_cs =>
+            when transmit_gap =>
                 master_ready   <= '0';
-                chip_select_n  <= '0';
+                chip_select_n  <= not din_last_reg_n;
                 spi_clk_en     <= '0';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
@@ -320,7 +349,6 @@ begin
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
                 rx_data_vld    <= '0';
-
         end case;
     end process;
 

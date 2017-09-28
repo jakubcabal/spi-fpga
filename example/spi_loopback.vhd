@@ -233,9 +233,10 @@ begin
         MISO     => M_MISO,
         -- USER INTERFACE
         ADDR     => (others => '0'),
-        READY    => open,
         DIN      => m_din,
+        DIN_LAST => '1',
         DIN_VLD  => m_din_vld,
+        READY    => open,
         DOUT     => m_dout,
         DOUT_VLD => m_dout_vld
     );
@@ -261,9 +262,9 @@ begin
         MOSI     => S_MOSI,
         MISO     => S_MISO,
         -- USER INTERFACE
-        READY    => open,
         DIN      => s_din,
         DIN_VLD  => s_din_vld,
+        READY    => open,
         DOUT     => s_dout,
         DOUT_VLD => s_dout_vld
     );
