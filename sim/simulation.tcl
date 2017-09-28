@@ -2,7 +2,7 @@
 # PROJECT: SPI MASTER AND SLAVE FOR FPGA
 #-------------------------------------------------------------------------------
 # NAME:    SIMULATION TCL SCRIPT FOR MODELSIM
-# AUTHORS: Jakub Cabal <xcabal05@stud.feec.vutbr.cz>
+# AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
 # LICENSE: LGPL-3.0, please read LICENSE file
 # WEBSITE: https://github.com/jakubcabal/spi-fpga
 #-------------------------------------------------------------------------------
@@ -26,6 +26,7 @@
 #-------------------------------------------------------------------------------
 
 # Compile VHDL files
+vlib work
 vcom ../rtl/spi_master.vhd
 vcom ../rtl/spi_slave.vhd
 vcom ./spi_tb.vhd
@@ -35,4 +36,4 @@ vsim work.spi_tb
 add wave *
 add wave sim:/spi_tb/master_i/*
 add wave sim:/spi_tb/slave_i/*
-run 10 us
+run 6 us
