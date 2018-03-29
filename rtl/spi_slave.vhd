@@ -70,14 +70,12 @@ begin
     -- -------------------------------------------------------------------------
 
     -- The SPI clock register is necessary for clock edge detection.
-    spi_clk_reg_p : process (CLK)
+    spi_clk_reg_p : process (CLK,RST)
     begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
-                spi_clk_reg <= '0';
-            else
-                spi_clk_reg <= SCLK;
-            end if;
+        if (RST = '1') then
+            spi_clk_reg <= '0';
+        elsif (rising_edge(CLK)) then
+            spi_clk_reg <= SCLK;
         end if;
     end process;
 
@@ -96,12 +94,13 @@ begin
 
     -- The counter counts received bits from the master. Counter is enabled when
     -- falling edge of SPI clock is detected and not asserted CS_N.
-    bit_cnt_p : process (CLK)
+    bit_cnt_p : process (CLK,RST)
     begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
-                bit_cnt <= (others => '0');
-            elsif (spi_clk_fedge_en = '1' and CS_N = '0') then
+    
+        if (RST = '1') then
+            bit_cnt <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (spi_clk_fedge_en = '1' and CS_N = '0') then
                 if (bit_cnt_max = '1') then
                     bit_cnt <= (others => '0');
                 else
@@ -120,14 +119,12 @@ begin
 
     -- The flag of last bit of received byte is only registered the flag of
     -- maximal value of the bit counter.
-    last_bit_en_p : process (CLK)
+    last_bit_en_p : process (CLK,RST)
     begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
-                last_bit_en <= '0';
-            else
-                last_bit_en <= bit_cnt_max;
-            end if;
+        if (RST = '1') then
+            last_bit_en <= '0';
+        elsif (rising_edge(CLK)) then
+            last_bit_en <= bit_cnt_max;
         end if;
     end process;
 
@@ -144,19 +141,17 @@ begin
     -- -------------------------------------------------------------------------
 
     -- Data shift register is busy until it sends all input data to SPI master.
-    shreg_busy_p : process (CLK)
+    shreg_busy_p : process (CLK,RST)
     begin
-        if (rising_edge(CLK)) then
-            if (RST = '1') then
+        if (RST = '1') then
+            shreg_busy <= '0';
+        elsif (rising_edge(CLK)) then
+            if (DIN_VLD = '1' and (CS_N = '1' or rx_data_vld = '1')) then
+                shreg_busy <= '1';
+            elsif (rx_data_vld = '1') then
                 shreg_busy <= '0';
             else
-                if (DIN_VLD = '1' and (CS_N = '1' or rx_data_vld = '1')) then
-                    shreg_busy <= '1';
-                elsif (rx_data_vld = '1') then
-                    shreg_busy <= '0';
-                else
-                    shreg_busy <= shreg_busy;
-                end if;
+                shreg_busy <= shreg_busy;
             end if;
         end if;
     end process;
