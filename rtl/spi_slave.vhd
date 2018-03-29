@@ -32,6 +32,9 @@ use IEEE.NUMERIC_STD.ALL;
 -- THE SPI SLAVE MODULE SUPPORT ONLY SPI MODE 0 (CPOL=0, CPHA=0)!!!
 
 entity SPI_SLAVE is
+    Generic(
+        D_WIDTH  : natural := 8
+    );
     Port (
         CLK      : in  std_logic; -- system clock
         RST      : in  std_logic; -- high active synchronous reset
@@ -41,10 +44,10 @@ entity SPI_SLAVE is
         MOSI     : in  std_logic; -- SPI serial data from master to slave
         MISO     : out std_logic; -- SPI serial data from slave to master
         -- USER INTERFACE
-        DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI master
+        DIN      : in  std_logic_vector(D_WIDTH-1 downto 0); -- input data for SPI master
         DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
         READY    : out std_logic; -- when READY = 1, valid input data are accept
-        DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI master
+        DOUT     : out std_logic_vector(D_WIDTH-1 downto 0); -- output data from SPI master
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
 end SPI_SLAVE;
@@ -54,11 +57,11 @@ architecture RTL of SPI_SLAVE is
     signal spi_clk_reg        : std_logic;
     signal spi_clk_redge_en   : std_logic;
     signal spi_clk_fedge_en   : std_logic;
-    signal bit_cnt            : unsigned(2 downto 0);
+    signal bit_cnt            : natural range 0 to D_WIDTH-1;
     signal bit_cnt_max        : std_logic;
     signal last_bit_en        : std_logic;
     signal load_data_en       : std_logic;
-    signal data_shreg         : std_logic_vector(7 downto 0);
+    signal data_shreg         : std_logic_vector(D_WIDTH-1 downto 0);
     signal slave_ready        : std_logic;
     signal shreg_busy         : std_logic;
     signal rx_data_vld        : std_logic;
@@ -98,11 +101,11 @@ begin
     begin
     
         if (RST = '1') then
-            bit_cnt <= (others => '0');
+            bit_cnt <= 0;
         elsif (rising_edge(CLK)) then
             if (spi_clk_fedge_en = '1' and CS_N = '0') then
                 if (bit_cnt_max = '1') then
-                    bit_cnt <= (others => '0');
+                    bit_cnt <= 0;
                 else
                     bit_cnt <= bit_cnt + 1;
                 end if;
@@ -111,7 +114,7 @@ begin
     end process;
 
     -- The flag of maximal value of the bit counter.
-    bit_cnt_max <= '1' when (bit_cnt = "111") else '0';
+    bit_cnt_max <= '1' when bit_cnt = D_WIDTH-1 else '0';
 
     -- -------------------------------------------------------------------------
     --  LAST BIT FLAG REGISTER
@@ -176,7 +179,7 @@ begin
             if (load_data_en = '1') then
                 data_shreg <= DIN;
             elsif (spi_clk_redge_en = '1' and CS_N = '0') then
-                data_shreg <= data_shreg(6 downto 0) & MOSI;
+                data_shreg <= data_shreg(D_WIDTH-2 downto 0) & MOSI;
             end if;
         end if;
     end process;
@@ -191,9 +194,9 @@ begin
     begin
         if (rising_edge(CLK)) then
             if (load_data_en = '1') then
-                MISO <= DIN(7);
+                MISO <= DIN(D_WIDTH-1);
             elsif (spi_clk_fedge_en = '1' and CS_N = '0') then
-                MISO <= data_shreg(7);
+                MISO <= data_shreg(D_WIDTH-1);
             end if;
         end if;
     end process;
