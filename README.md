@@ -15,6 +15,14 @@ SPI SLAVE | 24 | 15 | 0 | 318.0 MHz
 
 *Synthesis have been performed using Quartus Prime 17 Lite Edition for FPGA Altera Cyclone IV with these settings: CLK_FREQ = 50 MHz, SCLK_FREQ = 2 MHz, SLAVE_COUNT = 1.*
 
+## The SPI loopback example design:
+
+The SPI loopback example design is for testing data transfer between SPI master and SPI slave over external wires.
+
+Please read [README file of SPI loopback example design](example/README.md).
+
+[![Video of SPI loopback example design](https://img.youtube.com/vi/-TbtB6Sm2Xk/0.jpg)](https://youtu.be/-TbtB6Sm2Xk)
+
 ## License:
 
 The SPI master and SPI slave controllers are available under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
