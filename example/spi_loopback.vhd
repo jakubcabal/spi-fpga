@@ -264,7 +264,7 @@ begin
         -- USER INTERFACE
         DIN      => s_din,
         DIN_VLD  => s_din_vld,
-        READY    => open,
+        DIN_RDY  => open,
         DOUT     => s_dout,
         DOUT_VLD => s_dout_vld
     );

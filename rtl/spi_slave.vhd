@@ -43,7 +43,7 @@ entity SPI_SLAVE is
         -- USER INTERFACE
         DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI master
         DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
-        READY    : out std_logic; -- when READY = 1, valid input data are accept
+        DIN_RDY  : out std_logic; -- when DIN_RDY = 1, valid input data are accept
         DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI master
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
@@ -207,7 +207,7 @@ begin
     --  ASSIGNING OUTPUT SIGNALS
     -- -------------------------------------------------------------------------
     
-    READY    <= slave_ready;
+    DIN_RDY  <= slave_ready;
     DOUT     <= data_shreg;
     DOUT_VLD <= rx_data_vld;
 

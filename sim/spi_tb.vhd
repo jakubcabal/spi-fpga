@@ -56,7 +56,7 @@ architecture SIM of SPI_TB is
 
     signal s_din      : std_logic_vector(7 downto 0);
     signal s_din_vld  : std_logic;
-    signal s_ready    : std_logic;
+    signal s_din_rdy  : std_logic;
     signal s_dout     : std_logic_vector(7 downto 0);
     signal s_dout_vld : std_logic;
 
@@ -98,7 +98,7 @@ begin
         -- USER INTERFACE
         DIN      => s_din,
         DIN_VLD  => s_din_vld,
-        READY    => s_ready,
+        DIN_RDY  => s_din_rdy,
         DOUT     => s_dout,
         DOUT_VLD => s_dout_vld
     );
