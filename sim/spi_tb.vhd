@@ -46,11 +46,11 @@ architecture SIM of SPI_TB is
     signal miso       : std_logic;
     signal mosi       : std_logic;
 
-    signal m_addr     : std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0);
+    signal m_din_addr : std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0);
     signal m_din      : std_logic_vector(7 downto 0);
     signal m_din_last : std_logic;
     signal m_din_vld  : std_logic;
-    signal m_ready    : std_logic;
+    signal m_din_rdy  : std_logic;
     signal m_dout     : std_logic_vector(7 downto 0);
     signal m_dout_vld : std_logic;
 
@@ -77,11 +77,11 @@ begin
         MOSI     => mosi,
         MISO     => miso,
         -- USER INTERFACE
-        ADDR     => m_addr,
+        DIN_ADDR => m_din_addr,
         DIN      => m_din,
         DIN_LAST => m_din_last,
         DIN_VLD  => m_din_vld,
-        READY    => m_ready,
+        DIN_RDY  => m_din_rdy,
         DOUT     => m_dout,
         DOUT_VLD => m_dout_vld
     );
@@ -121,7 +121,7 @@ begin
 
     master_test_process : process
     begin
-        m_addr <= (others => '0');
+        m_din_addr <= (others => '0');
         m_din <= (others => 'Z');
         m_din_vld <= '0';
         m_din_last <= '0';
@@ -133,24 +133,24 @@ begin
         m_din <= X"12";
         m_din_vld <= '1';
         m_din_last <= '0';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         m_din <= (others => '0');
         m_din_vld <= '0';
 
-        wait until m_ready = '1';
+        wait until m_din_rdy = '1';
         wait for 190 ns;
         wait until rising_edge(CLK);
 
         m_din <= X"F4";
         m_din_vld <= '1';
         m_din_last <= '1';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         m_din <= X"47";
         m_din_vld <= '1';
         m_din_last <= '1';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         m_din <= (others => '0');
         m_din_vld <= '0';
@@ -168,15 +168,15 @@ begin
 
         s_din <= X"A1";
         s_din_vld <= '1';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         s_din <= X"B2";
         s_din_vld <= '1';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         s_din <= X"E8";
         s_din_vld <= '1';
-        wait until m_ready = '0';
+        wait until m_din_rdy = '0';
 
         s_din <= (others => '0');
         s_din_vld <= '0';

@@ -232,11 +232,11 @@ begin
         MOSI     => M_MOSI,
         MISO     => M_MISO,
         -- USER INTERFACE
-        ADDR     => (others => '0'),
+        DIN_ADDR => (others => '0'),
         DIN      => m_din,
         DIN_LAST => '1',
         DIN_VLD  => m_din_vld,
-        READY    => open,
+        DIN_RDY  => open,
         DOUT     => m_dout,
         DOUT_VLD => m_dout_vld
     );

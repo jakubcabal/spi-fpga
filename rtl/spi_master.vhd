@@ -47,11 +47,11 @@ entity SPI_MASTER is
         MOSI     : out std_logic; -- SPI serial data from master to slave
         MISO     : in  std_logic; -- SPI serial data from slave to master
         -- INPUT USER INTERFACE
-        ADDR     : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
+        DIN_ADDR : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
         DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI slave
         DIN_LAST : in  std_logic; -- when DIN_LAST = 1, after transmit these input data is asserted CS_N
         DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
-        READY    : out std_logic; -- when READY = 1, valid input data are accept
+        DIN_RDY  : out std_logic; -- when DIN_RDY = 1, valid input data are accept
         -- OUTPUT USER INTERFACE
         DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI slave
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
@@ -91,7 +91,7 @@ begin
     ASSERT (DIVIDER_VALUE >= 5) REPORT "condition: SCLK_FREQ <= CLK_FREQ/10" SEVERITY ERROR;
 
     load_data <= master_ready and DIN_VLD;
-    READY     <= master_ready;
+    DIN_RDY   <= master_ready;
     
     -- -------------------------------------------------------------------------
     --  SYSTEM CLOCK COUNTER
@@ -156,7 +156,7 @@ begin
             if (RST = '1') then
                 addr_reg <= (others => '0');
             elsif (load_data = '1') then
-                addr_reg <= ADDR;
+                addr_reg <= DIN_ADDR;
             end if;
         end if;
     end process;
