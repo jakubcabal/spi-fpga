@@ -1,7 +1,6 @@
 #-------------------------------------------------------------------------------
 # PROJECT: SPI MASTER AND SLAVE FOR FPGA
 #-------------------------------------------------------------------------------
-# NAME:    TIMING CONSTRAINTS
 # AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
 # LICENSE: LGPL-3.0, please read LICENSE file
 # WEBSITE: https://github.com/jakubcabal/spi-fpga
@@ -9,7 +8,7 @@
 # COPYRIGHT NOTICE:
 #-------------------------------------------------------------------------------
 # SPI MASTER AND SLAVE FOR FPGA
-# Copyright (C) 2016 Jakub Cabal
+# Copyright (C) 2020 Jakub Cabal
 #
 # This source file is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -25,4 +24,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #-------------------------------------------------------------------------------
 
-create_clock -name CLK50 -period 20.000 [get_ports {CLK}]
+PROJECT_REVISION = "spi_loopback_ep4ce6sb"

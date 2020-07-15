@@ -1,7 +1,6 @@
 #-------------------------------------------------------------------------------
 # PROJECT: SPI MASTER AND SLAVE FOR FPGA
 #-------------------------------------------------------------------------------
-# NAME:    CONSTRAINTS FOR EP4CE6 STARTER BOARD
 # AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
 # LICENSE: LGPL-3.0, please read LICENSE file
 # WEBSITE: https://github.com/jakubcabal/spi-fpga
@@ -9,7 +8,7 @@
 # COPYRIGHT NOTICE:
 #-------------------------------------------------------------------------------
 # SPI MASTER AND SLAVE FOR FPGA
-# Copyright (C) 2016 Jakub Cabal
+# Copyright (C) 2020 Jakub Cabal
 #
 # This source file is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -27,32 +26,40 @@
 
 # GLOBAL CONSTRAINTS FOR EP4CE6 STARTER BOARD
 
-set_global_assignment -name FAMILY "Cyclone IV"
+set_global_assignment -name FAMILY "Cyclone IV E"
 set_global_assignment -name DEVICE EP4CE6E22C8
 set_global_assignment -name TOP_LEVEL_ENTITY SPI_LOOPBACK
 
+# PROJECT VHDL FILES
+set_global_assignment -name VHDL_FILE ../../rtl/spi_slave.vhd
+set_global_assignment -name VHDL_FILE ../../rtl/spi_master.vhd
+set_global_assignment -name VHDL_FILE ../comp/clk_en_gen.vhd
+set_global_assignment -name VHDL_FILE ../comp/sseg_driver.vhd
+set_global_assignment -name VHDL_FILE ../comp/btn_debounce.vhd
+set_global_assignment -name VHDL_FILE ../spi_loopback.vhd
+
 # FPGA PINS ASSIGNMENT
 
-set_location_assignment PIN_91  -to CLK
-set_location_assignment PIN_25  -to BTN_RST
+set_location_assignment PIN_91 -to CLK
+set_location_assignment PIN_25 -to BTN_RST
 
-set_location_assignment PIN_85  -to M_SCLK
-set_location_assignment PIN_86  -to M_CS_N
-set_location_assignment PIN_87  -to M_MOSI
-set_location_assignment PIN_99  -to M_MISO
+set_location_assignment PIN_85 -to M_SCLK
+set_location_assignment PIN_86 -to M_CS_N
+set_location_assignment PIN_87 -to M_MOSI
+set_location_assignment PIN_99 -to M_MISO
 
 set_location_assignment PIN_111 -to S_SCLK
 set_location_assignment PIN_110 -to S_CS_N
-set_location_assignment PIN_98  -to S_MOSI
+set_location_assignment PIN_98 -to S_MOSI
 set_location_assignment PIN_100 -to S_MISO
 
-set_location_assignment PIN_24  -to BTN_MENU_MODE
-set_location_assignment PIN_23  -to BTN_MENU_ACTION
+set_location_assignment PIN_24 -to BTN_MENU_MODE
+set_location_assignment PIN_23 -to BTN_MENU_ACTION
 
-set_location_assignment PIN_7   -to SSEG[0]
-set_location_assignment PIN_3   -to SSEG[1]
-set_location_assignment PIN_2   -to SSEG[2]
-set_location_assignment PIN_1   -to SSEG[3]
+set_location_assignment PIN_7 -to SSEG[0]
+set_location_assignment PIN_3 -to SSEG[1]
+set_location_assignment PIN_2 -to SSEG[2]
+set_location_assignment PIN_1 -to SSEG[3]
 set_location_assignment PIN_144 -to SSEG[4]
 set_location_assignment PIN_143 -to SSEG[5]
 set_location_assignment PIN_142 -to SSEG[6]
@@ -60,5 +67,5 @@ set_location_assignment PIN_141 -to SSEG[7]
 
 set_location_assignment PIN_137 -to SSEG_AN[0]
 set_location_assignment PIN_138 -to SSEG_AN[1]
-set_location_assignment PIN_10  -to SSEG_AN[2]
-set_location_assignment PIN_11  -to SSEG_AN[3]
+set_location_assignment PIN_10 -to SSEG_AN[2]
+set_location_assignment PIN_11 -to SSEG_AN[3]
