@@ -33,7 +33,7 @@ use IEEE.MATH_REAL.ALL;
 -- THE SPI SLAVE MODULE SUPPORT ONLY SPI MODE 0 (CPOL=0, CPHA=0)!!!
 
 entity SPI_SLAVE is
-    Generic(
+    Generic (
         WORD_SIZE : natural := 8 -- size of transfer word in bits, must be power of two
     );
     Port (
@@ -51,7 +51,7 @@ entity SPI_SLAVE is
         DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- output data from SPI master
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
-end SPI_SLAVE;
+end entity;
 
 architecture RTL of SPI_SLAVE is
 
@@ -217,4 +217,4 @@ begin
     DOUT     <= data_shreg;
     DOUT_VLD <= rx_data_vld;
 
-end RTL;
+end architecture;

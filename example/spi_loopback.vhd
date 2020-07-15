@@ -49,7 +49,7 @@ entity SPI_LOOPBACK is
         SSEG            : out std_logic_vector(7 downto 0);
         SSEG_AN         : out std_logic_vector(3 downto 0)
     );
-end SPI_LOOPBACK;
+end entity;
 
 architecture RTL of SPI_LOOPBACK is
 
@@ -298,4 +298,4 @@ begin
         SSEG_AN   => SSEG_AN
     );
 
-end RTL;
+end architecture;

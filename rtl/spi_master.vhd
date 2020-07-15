@@ -56,7 +56,7 @@ entity SPI_MASTER is
         DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI slave
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
-end SPI_MASTER;
+end entity;
 
 architecture RTL of SPI_MASTER is
 
@@ -352,4 +352,4 @@ begin
         end case;
     end process;
 
-end RTL;
+end architecture;

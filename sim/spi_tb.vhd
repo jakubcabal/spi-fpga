@@ -31,7 +31,7 @@ use IEEE.NUMERIC_STD.ALL;
 use IEEE.MATH_REAL.ALL;
 
 entity SPI_TB is
-end SPI_TB;
+end entity;
 
 architecture SIM of SPI_TB is
 
@@ -184,4 +184,4 @@ begin
         wait;
     end process;
 
-end SIM;
+end architecture;
