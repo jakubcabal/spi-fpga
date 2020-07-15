@@ -8,12 +8,12 @@ The SPI master and SPI slave controllers were simulated and tested in hardware. 
 
 ## Table of resource usage summary:
 
-CONTROLLER | LE (LUT) | FF | BRAM | Fmax
+CONTROLLER | LE | FF | M9K | Fmax
 :---:|:---:|:---:|:---:|:---:
-SPI MASTER | 34 | 23 | 0 | 327.3 MHz
-SPI SLAVE | 24 | 15 | 0 | 318.0 MHz
+SPI MASTER | 34 | 23 | 0 | 334.2 MHz
+SPI SLAVE | 24 | 15 | 0 | 343.7 MHz
 
-*Synthesis have been performed using Quartus Prime 17 Lite Edition for FPGA Altera Cyclone IV with these settings: CLK_FREQ = 50 MHz, SCLK_FREQ = 2 MHz, SLAVE_COUNT = 1.*
+*Synthesis have been performed using Quartus Prime 20.1 Lite Edition for FPGA Altera Cyclone IV EP4CE6E22C8 with default generics*
 
 ## The SPI loopback example design:
 
@@ -36,7 +36,8 @@ Please read [LICENSE file](LICENSE).
 Generic name | Type | Default value | Generic description
 ---|:---:|:---:|:---
 CLK_FREQ | natural | 50e6 | System clock frequency in Hz.
-SCLK_FREQ | natural | 2e6 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
+SCLK_FREQ | natural | 5e6 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
+WORD_SIZE | natural | 8 | Size of transfer word in bits, must be power of two
 SLAVE_COUNT | natural | 1 | Count of SPI slave controllers.
 
 ## Table of inputs and outputs ports:
@@ -51,15 +52,21 @@ CS_N | OUT | SLAVE_COUNT | SPI chip select, active in low.
 MOSI | OUT | 1 | SPI serial data from master to slave.
 MISO | IN | 1 | SPI serial data from slave to master.
 --- | --- | --- | ---
-ADDR | IN | log2(SLAVE_COUNT) | SPI slave address.
-DIN | IN | 8 | Input data for SPI slave.
+DIN_ADDR | IN | log2(SLAVE_COUNT) | SPI slave address.
+DIN | IN | WORD_SIZE | Input data for SPI slave.
 DIN_LAST | IN | 1 | When DIN_LAST = 1, after transmit these input data is asserted CS_N.
 DIN_VLD | IN | 1 | When DIN_VLD = 1, input data are valid.
-READY | OUT | 1 | When READY = 1, valid input data are accept.
-DOUT | OUT | 8 | Output data from SPI slave.
+DIN_RDY | OUT | 1 | When DIN_RDY = 1, valid input data are accept.
+DOUT | OUT | WORD_SIZE | Output data from SPI slave.
 DOUT_VLD | OUT | 1 | When DOUT_VLD = 1, output data are valid.
 
 # SPI slave
+
+## Table of generics:
+
+Generic name | Type | Default value | Generic description
+---|:---:|:---:|:---
+WORD_SIZE | natural | 8 | Size of transfer word in bits, must be power of two
 
 ## Table of inputs and outputs ports:
 
@@ -73,8 +80,8 @@ CS_N | IN | 1 | SPI chip select active in low.
 MOSI | IN | 1 | SPI serial data from master to slave.
 MISO | OUT | 1 | SPI serial data from slave to master.
 --- | --- | --- | ---
-DIN | IN | 8 | Input data for SPI master.
+DIN | IN | WORD_SIZE | Input data for SPI master.
 DIN_VLD | IN | 1 | When DIN_VLD = 1, input data are valid.
-READY | OUT | 1 | When READY = 1, valid input data are accept.
-DOUT | OUT | 8 | Output data from SPI master.
+DIN_RDY | OUT | 1 | When DIN_RDY = 1, valid input data are accept.
+DOUT | OUT | WORD_SIZE | Output data from SPI master.
 DOUT_VLD | OUT | 1 | When DOUT_VLD = 1, output data are valid.
