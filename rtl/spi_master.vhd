@@ -36,6 +36,7 @@ entity SPI_MASTER is
     Generic (
         CLK_FREQ    : natural := 50e6; -- set system clock frequency in Hz
         SCLK_FREQ   : natural := 5e6;  -- set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10)
+        WORD_SIZE   : natural := 8;    -- size of transfer word in bits, must be power of two
         SLAVE_COUNT : natural := 1     -- count of SPI slaves
     );
     Port (
@@ -48,12 +49,12 @@ entity SPI_MASTER is
         MISO     : in  std_logic; -- SPI serial data from slave to master
         -- INPUT USER INTERFACE
         DIN_ADDR : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
-        DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI slave
+        DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- input data for SPI slave
         DIN_LAST : in  std_logic; -- when DIN_LAST = 1, after transmit these input data is asserted CS_N
         DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
         DIN_RDY  : out std_logic; -- when DIN_RDY = 1, valid input data are accept
         -- OUTPUT USER INTERFACE
-        DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI slave
+        DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- output data from SPI slave
         DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
     );
 end entity;
@@ -63,6 +64,7 @@ architecture RTL of SPI_MASTER is
     constant DIVIDER_VALUE      : integer := (CLK_FREQ/SCLK_FREQ)/2;
     constant WIDTH_CLK_CNT      : integer := integer(ceil(log2(real(DIVIDER_VALUE))));
     constant WIDTH_ADDR         : integer := integer(ceil(log2(real(SLAVE_COUNT))));
+    constant BIT_CNT_WIDTH      : natural := natural(ceil(log2(real(WORD_SIZE))));
 
     signal addr_reg             : std_logic_vector(WIDTH_ADDR-1 downto 0);
     signal sys_clk_cnt          : unsigned(WIDTH_CLK_CNT-1 downto 0);
@@ -76,8 +78,8 @@ architecture RTL of SPI_MASTER is
     signal chip_select_n        : std_logic;
     signal load_data            : std_logic;
     signal miso_reg             : std_logic;
-    signal shreg                : std_logic_vector(7 downto 0);
-    signal bit_cnt              : unsigned(2 downto 0);
+    signal shreg                : std_logic_vector(WORD_SIZE-1 downto 0);
+    signal bit_cnt              : unsigned(BIT_CNT_WIDTH-1 downto 0);
     signal bit_cnt_max          : std_logic;
     signal bit_cnt_rst          : std_logic;
     signal rx_data_vld          : std_logic;
@@ -132,7 +134,7 @@ begin
     --  BIT COUNTER
     -- -------------------------------------------------------------------------
 
-    bit_cnt_max <= '1' when (bit_cnt = "111") else '0';
+    bit_cnt_max <= '1' when (bit_cnt = WORD_SIZE-1) else '0';
     bit_cnt_rst <= RST or not spi_clk_en;
 
     bit_cnt_p : process (CLK)
@@ -210,13 +212,13 @@ begin
             if (load_data = '1') then
                 shreg <= DIN;
             elsif (second_edge_en = '1') then
-                shreg <= shreg(6 downto 0) & miso_reg;
+                shreg <= shreg(WORD_SIZE-2 downto 0) & miso_reg;
             end if;
         end if;
     end process;
 
     DOUT <= shreg;
-    MOSI <= shreg(7);
+    MOSI <= shreg(WORD_SIZE-1);
     
     -- -------------------------------------------------------------------------
     --  DATA OUT VALID RESISTER
