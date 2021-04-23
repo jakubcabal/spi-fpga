@@ -1,10 +1,9 @@
 --------------------------------------------------------------------------------
--- PROJECT: FPGA MISC
+-- PROJECT: SPI MASTER AND SLAVE FOR FPGA
 --------------------------------------------------------------------------------
--- NAME:    BTN_DEBOUNCE
 -- AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
--- LICENSE: The MIT License
--- WEBSITE: https://github.com/jakubcabal/fpga-misc
+-- LICENSE: LGPL-3.0, please read LICENSE file
+-- WEBSITE: https://github.com/jakubcabal/spi-fpga
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -12,53 +11,90 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity BTN_DEBOUNCE is
-    Port (
-        CLK            : in  std_logic; -- system clock
-        CLK_EN_1K      : in  std_logic; -- clock enable 1 KHz
-        ASYNC_RST      : in  std_logic; -- asynchrounous reset
-        BTN_RAW        : in  std_logic; -- button raw signal
-        BTN_DEB        : out std_logic; -- button debounce signal
-        BTN_DEB_EN     : out std_logic  -- button debounce rising edge enable
+    Generic (
+        CNT_WIDTH : natural := 2 -- width of debounce counter
     );
-end BTN_DEBOUNCE;
+    Port (
+        CLK        : in  std_logic; -- system clock
+        ASYNC_RST  : in  std_logic; -- asynchrounous reset
+        SAMPLE_EN  : in  std_logic; -- sample clock enable
+        BTN_RAW    : in  std_logic; -- button raw signal
+        BTN_DEB    : out std_logic; -- button debounce signal
+        BTN_DEB_RE : out std_logic  -- rising edge of debounced signal
+    );
+end entity;
 
 architecture RTL of BTN_DEBOUNCE is
 
-    signal btn_raw_shreg    : std_logic_vector(3 downto 0);
-    signal btn_deb_comb     : std_logic;
-    signal btn_deb_reg      : std_logic;
-    signal btn_deb_en_reg   : std_logic;
+    signal btn_raw_sync_reg1  : std_logic;
+    signal btn_raw_sync_reg2  : std_logic;
+    signal btn_raw_sample_reg : std_logic;
+    signal btn_raw_diff       : std_logic;
+    signal deb_cnt            : unsigned(CNT_WIDTH-1 downto 0);
+    signal deb_cnt_max        : std_logic;
+    signal btn_deb_reg        : std_logic;
+    signal btn_deb_re_reg     : std_logic;
 
 begin
 
     -- -------------------------------------------------------------------------
-    --  SHIFT REGISTER OF BUTTON RAW SIGNAL
+    --  BUTTON RAW SIGNAL SYNCHRONIZATION REGISTERS
     -- -------------------------------------------------------------------------
 
-    btn_shreg_p : process (CLK, ASYNC_RST)
+    btn_raw_sync_reg_p : process (CLK)
     begin
-        if (ASYNC_RST = '1') then
-            btn_raw_shreg <= (others => '0');
-        elsif (rising_edge(CLK)) then
-            if (CLK_EN_1K = '1') then
-                btn_raw_shreg <= btn_raw_shreg(2 downto 0) & BTN_RAW;
-            end if;
+        if (rising_edge(CLK)) then
+            btn_raw_sync_reg1 <= BTN_RAW;
+            btn_raw_sync_reg2 <= btn_raw_sync_reg1;
         end if;
     end process;
 
     -- -------------------------------------------------------------------------
-    --  DEBOUNCE REGISTER OF BUTTON RAW SIGNAL
+    --  BUTTON RAW SIGNAL SAMPLE REGISTERS
     -- -------------------------------------------------------------------------
 
-    btn_deb_comb <= btn_raw_shreg(0) and btn_raw_shreg(1) and
-                    btn_raw_shreg(2) and btn_raw_shreg(3);
+    btn_raw_sample_reg_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            if (SAMPLE_EN = '1') then
+                btn_raw_sample_reg <= btn_raw_sync_reg2;  
+            end if;
+        end if;
+    end process;
 
-    btn_deb_reg_p : process (CLK, ASYNC_RST)
+    btn_raw_diff <= btn_raw_sample_reg xor btn_raw_sync_reg2;
+
+    -- -------------------------------------------------------------------------
+    --  DEBOUNCE COUNTER
+    -- -------------------------------------------------------------------------
+
+    deb_cnt_p : process (CLK, ASYNC_RST)
     begin
         if (ASYNC_RST = '1') then
-            btn_deb_reg <= '0';
+            deb_cnt <= (others => '0');
         elsif (rising_edge(CLK)) then
-            btn_deb_reg <= btn_deb_comb;
+            if (SAMPLE_EN = '1') then
+                if (btn_raw_diff = '1') then
+                    deb_cnt <= (others => '0');
+                else
+                    deb_cnt <= deb_cnt + 1;
+                end if;
+            end if;
+        end if;
+    end process;
+    
+    deb_cnt_max <= '1' when (deb_cnt = (2**CNT_WIDTH)-1) else '0';
+
+    -- -------------------------------------------------------------------------
+    --  BUTTON DEBOUNCE SIGNAL REGISTER
+    -- -------------------------------------------------------------------------
+
+    btn_deb_reg_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            if (deb_cnt_max = '1') then
+                btn_deb_reg <= btn_raw_sample_reg;
+            end if;
         end if;
     end process;
 
@@ -68,15 +104,15 @@ begin
     --  RISING EDGE DETECTOR OF BUTTON DEBOUNCE SIGNAL
     -- -------------------------------------------------------------------------
 
-    sseg_an_cnt_p : process (CLK, ASYNC_RST)
+    btn_deb_re_reg_p : process (CLK, ASYNC_RST)
     begin
         if (ASYNC_RST = '1') then
-            btn_deb_en_reg <= '0';
+            btn_deb_re_reg <= '0';
         elsif (rising_edge(CLK)) then
-            btn_deb_en_reg <= btn_deb_comb and not btn_deb_reg;
+            btn_deb_re_reg <= deb_cnt_max and btn_raw_sample_reg and not btn_deb_reg;
         end if;
     end process;
 
-    BTN_DEB_EN <= btn_deb_en_reg;
+    BTN_DEB_RE <= btn_deb_re_reg;
 
-end RTL;
+end architecture;
