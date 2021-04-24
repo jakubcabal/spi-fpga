@@ -1,0 +1,106 @@
+# This is a basic workflow to help you get started with Actions
+
+name: SPI FPGA CI
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  spi_master_sim:
+    name: SPI Master Simulation
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Setup GHDL
+      # You may pin to the exact commit or the version.
+      # uses: ghdl/setup-ghdl-ci@233774d8c0c5021af4c3686ea405013cb1494fd1
+        uses: ghdl/setup-ghdl-ci@nightly
+        with: # Select GHDL backend (mcode, llvm or gcc)
+          backend: llvm # optional, default is mcode
+
+      - name: GHDL version check
+        run: ghdl --version
+
+      - name: Run Test 1 (CLK_FREQ=50e6, SPI_FREQ=1e6, WORD_SIZE=8)
+        run: |
+          cd ./sim/
+          sh ./spi_master_tb_ghdl_setup.sh
+          ghdl -r SPI_MASTER_TB -gCLK_FREQ=50e6 -gSPI_FREQ=1e6 -gWORD_SIZE=8 -gTRANS_COUNT=2e4
+
+      - name: Run Test 2 (CLK_FREQ=12e6, SPI_FREQ=2e6, WORD_SIZE=8)
+        run: |
+          cd ./sim/
+          sh ./spi_master_tb_ghdl_setup.sh
+          ghdl -r SPI_MASTER_TB -gCLK_FREQ=12e6 -gSPI_FREQ=2e6 -gWORD_SIZE=8 -gTRANS_COUNT=2e4
+
+      - name: Run Test 3 (CLK_FREQ=100e6, SPI_FREQ=5e6, WORD_SIZE=16)
+        run: |
+          cd ./sim/
+          sh ./spi_master_tb_ghdl_setup.sh
+          ghdl -r SPI_MASTER_TB -gCLK_FREQ=100e6 -gSPI_FREQ=5e6 -gWORD_SIZE=16 -gTRANS_COUNT=2e4
+
+      - name: Run Test 4 (CLK_FREQ=25e6, SPI_FREQ=3e6, WORD_SIZE=16)
+        run: |
+          cd ./sim/
+          sh ./spi_master_tb_ghdl_setup.sh
+          ghdl -r SPI_MASTER_TB -gCLK_FREQ=25e6 -gSPI_FREQ=3e6 -gWORD_SIZE=16 -gTRANS_COUNT=2e4
+
+  spi_slave_sim:
+    name: SPI Slave Simulation
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      
+      - name: Setup GHDL
+      # You may pin to the exact commit or the version.
+      # uses: ghdl/setup-ghdl-ci@233774d8c0c5021af4c3686ea405013cb1494fd1
+        uses: ghdl/setup-ghdl-ci@nightly
+        with: # Select GHDL backend (mcode, llvm or gcc)
+          backend: llvm # optional, default is mcode
+
+      - name: GHDL version check
+        run: ghdl --version
+
+      - name: Run Test 1 (CLK_FREQ=50e6, SPI_FREQ=1e6, WORD_SIZE=8)
+        run: |
+          cd ./sim/
+          sh ./spi_slave_tb_ghdl_setup.sh
+          ghdl -r SPI_SLAVE_TB -gCLK_FREQ=50e6 -gSPI_FREQ=1e6 -gWORD_SIZE=8 -gTRANS_COUNT=2e4
+
+      - name: Run Test 2 (CLK_FREQ=12e6, SPI_FREQ=2e6, WORD_SIZE=8)
+        run: |
+          cd ./sim/
+          sh ./spi_slave_tb_ghdl_setup.sh
+          ghdl -r SPI_SLAVE_TB -gCLK_FREQ=12e6 -gSPI_FREQ=2e6 -gWORD_SIZE=8 -gTRANS_COUNT=2e4
+
+      - name: Run Test 3 (CLK_FREQ=100e6, SPI_FREQ=5e6, WORD_SIZE=16)
+        run: |
+          cd ./sim/
+          sh ./spi_slave_tb_ghdl_setup.sh
+          ghdl -r SPI_SLAVE_TB -gCLK_FREQ=100e6 -gSPI_FREQ=5e6 -gWORD_SIZE=16 -gTRANS_COUNT=2e4
+
+      - name: Run Test 4 (CLK_FREQ=25e6, SPI_FREQ=3e6, WORD_SIZE=16)
+        run: |
+          cd ./sim/
+          sh ./spi_slave_tb_ghdl_setup.sh
+          ghdl -r SPI_SLAVE_TB -gCLK_FREQ=25e6 -gSPI_FREQ=3e6 -gWORD_SIZE=16 -gTRANS_COUNT=2e4

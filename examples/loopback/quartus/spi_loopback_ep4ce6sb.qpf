@@ -1,0 +1,9 @@
+#-------------------------------------------------------------------------------
+# PROJECT: SPI MASTER AND SLAVE FOR FPGA
+#-------------------------------------------------------------------------------
+# AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
+# LICENSE: The MIT License, please read LICENSE file
+# WEBSITE: https://github.com/jakubcabal/spi-fpga
+#-------------------------------------------------------------------------------
+
+PROJECT_REVISION = "spi_loopback_ep4ce6sb"

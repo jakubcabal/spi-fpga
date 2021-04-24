@@ -1,28 +1,9 @@
 --------------------------------------------------------------------------------
 -- PROJECT: SPI MASTER AND SLAVE FOR FPGA
 --------------------------------------------------------------------------------
--- NAME:    SPI_MASTER
 -- AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
--- LICENSE: LGPL-3.0, please read LICENSE file
+-- LICENSE: The MIT License, please read LICENSE file
 -- WEBSITE: https://github.com/jakubcabal/spi-fpga
---------------------------------------------------------------------------------
--- COPYRIGHT NOTICE:
---------------------------------------------------------------------------------
--- SPI MASTER AND SLAVE FOR FPGA
--- Copyright (C) 2016 Jakub Cabal
---
--- This source file is free software: you can redistribute it and/or modify
--- it under the terms of the GNU Lesser General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This source file is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU Lesser General Public License for more details.
---
--- You should have received a copy of the GNU Lesser General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -36,6 +17,7 @@ entity SPI_MASTER is
     Generic (
         CLK_FREQ    : natural := 50e6; -- set system clock frequency in Hz
         SCLK_FREQ   : natural := 5e6;  -- set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10)
+        WORD_SIZE   : natural := 8;    -- size of transfer word in bits, must be power of two
         SLAVE_COUNT : natural := 1     -- count of SPI slaves
     );
     Port (
@@ -47,63 +29,62 @@ entity SPI_MASTER is
         MOSI     : out std_logic; -- SPI serial data from master to slave
         MISO     : in  std_logic; -- SPI serial data from slave to master
         -- INPUT USER INTERFACE
-        ADDR     : in  std_logic_vector(integer(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
-        DIN      : in  std_logic_vector(7 downto 0); -- input data for SPI slave
-        DIN_LAST : in  std_logic; -- when DIN_LAST = 1, after transmit these input data is asserted CS_N
-        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
-        READY    : out std_logic; -- when READY = 1, valid input data are accept
+        DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- data for transmission to SPI slave
+        DIN_ADDR : in  std_logic_vector(natural(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
+        DIN_LAST : in  std_logic; -- when DIN_LAST = 1, last data word, after transmit will be asserted CS_N
+        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, data for transmission are valid
+        DIN_RDY  : out std_logic; -- when DIN_RDY = 1, SPI master is ready to accept valid data for transmission
         -- OUTPUT USER INTERFACE
-        DOUT     : out std_logic_vector(7 downto 0); -- output data from SPI slave
-        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
+        DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI slave
+        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
     );
-end SPI_MASTER;
+end entity;
 
 architecture RTL of SPI_MASTER is
 
-    constant DIVIDER_VALUE      : integer := (CLK_FREQ/SCLK_FREQ)/2;
-    constant WIDTH_CLK_CNT      : integer := integer(ceil(log2(real(DIVIDER_VALUE))));
-    constant WIDTH_ADDR         : integer := integer(ceil(log2(real(SLAVE_COUNT))));
+    constant DIVIDER_VALUE : natural := (CLK_FREQ/SCLK_FREQ)/2;
+    constant WIDTH_CLK_CNT : natural := natural(ceil(log2(real(DIVIDER_VALUE))));
+    constant WIDTH_ADDR    : natural := natural(ceil(log2(real(SLAVE_COUNT))));
+    constant BIT_CNT_WIDTH : natural := natural(ceil(log2(real(WORD_SIZE))));
 
-    signal addr_reg             : std_logic_vector(WIDTH_ADDR-1 downto 0);
-    signal sys_clk_cnt          : unsigned(WIDTH_CLK_CNT-1 downto 0);
-    signal sys_clk_cnt_max      : std_logic;
-    signal sys_clk_cnt_rst      : std_logic;
-    signal spi_clk              : std_logic;
-    signal spi_clk_en           : std_logic;
-    signal din_last_reg_n       : std_logic;
-    signal first_edge_en        : std_logic;
-    signal second_edge_en       : std_logic;
-    signal chip_select_n        : std_logic;
-    signal load_data            : std_logic;
-    signal miso_reg             : std_logic;
-    signal shreg                : std_logic_vector(7 downto 0);
-    signal bit_cnt              : unsigned(2 downto 0);
-    signal bit_cnt_max          : std_logic;
-    signal bit_cnt_rst          : std_logic;
-    signal rx_data_vld          : std_logic;
-    signal master_ready         : std_logic;
+    type state_t is (idle, first_edge, second_edge, transmit_end, transmit_gap);
 
-    type state is (idle, first_edge, second_edge, transmit_end, transmit_gap);
-    signal present_state, next_state : state;
+    signal addr_reg        : unsigned(WIDTH_ADDR-1 downto 0);
+    signal sys_clk_cnt     : unsigned(WIDTH_CLK_CNT-1 downto 0);
+    signal sys_clk_cnt_max : std_logic;
+    signal spi_clk         : std_logic;
+    signal spi_clk_rst     : std_logic;
+    signal din_last_reg_n  : std_logic;
+    signal first_edge_en   : std_logic;
+    signal second_edge_en  : std_logic;
+    signal chip_select_n   : std_logic;
+    signal load_data       : std_logic;
+    signal miso_reg        : std_logic;
+    signal shreg           : std_logic_vector(WORD_SIZE-1 downto 0);
+    signal bit_cnt         : unsigned(BIT_CNT_WIDTH-1 downto 0);
+    signal bit_cnt_max     : std_logic;
+    signal rx_data_vld     : std_logic;
+    signal master_ready    : std_logic;
+    signal present_state   : state_t;
+    signal next_state      : state_t;
 
 begin
 
     ASSERT (DIVIDER_VALUE >= 5) REPORT "condition: SCLK_FREQ <= CLK_FREQ/10" SEVERITY ERROR;
 
     load_data <= master_ready and DIN_VLD;
-    READY     <= master_ready;
+    DIN_RDY   <= master_ready;
     
     -- -------------------------------------------------------------------------
     --  SYSTEM CLOCK COUNTER
     -- -------------------------------------------------------------------------
 
     sys_clk_cnt_max <= '1' when (to_integer(sys_clk_cnt) = DIVIDER_VALUE-1) else '0';
-    sys_clk_cnt_rst <= RST or sys_clk_cnt_max;
 
     sys_clk_cnt_reg_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
-            if (sys_clk_cnt_rst = '1') then
+            if (RST = '1' or sys_clk_cnt_max = '1') then
                 sys_clk_cnt <= (others => '0');
             else
                 sys_clk_cnt <= sys_clk_cnt + 1;
@@ -118,7 +99,7 @@ begin
     spi_clk_gen_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
-            if (RST = '1' or spi_clk_en = '0') then
+            if (RST = '1' or spi_clk_rst = '1') then
                 spi_clk <= '0';
             elsif (sys_clk_cnt_max = '1') then
                 spi_clk <= not spi_clk;
@@ -132,13 +113,12 @@ begin
     --  BIT COUNTER
     -- -------------------------------------------------------------------------
 
-    bit_cnt_max <= '1' when (bit_cnt = "111") else '0';
-    bit_cnt_rst <= RST or not spi_clk_en;
+    bit_cnt_max <= '1' when (bit_cnt = WORD_SIZE-1) else '0';
 
     bit_cnt_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
-            if (bit_cnt_rst = '1') then
+            if (RST = '1' or spi_clk_rst = '1') then
                 bit_cnt <= (others => '0');
             elsif (second_edge_en = '1') then
                 bit_cnt <= bit_cnt + 1;
@@ -156,20 +136,26 @@ begin
             if (RST = '1') then
                 addr_reg <= (others => '0');
             elsif (load_data = '1') then
-                addr_reg <= ADDR;
+                addr_reg <= unsigned(DIN_ADDR);
             end if;
         end if;
     end process;
 
-    cs_n_g : for i in 0 to SLAVE_COUNT-1 generate
-        cs_n_p : process (addr_reg, chip_select_n)
-        begin
-            if (to_integer(unsigned(addr_reg)) = i) then
-                CS_N(i) <= chip_select_n;
-            else
-                CS_N(i) <= '1';
-            end if;
-        end process;
+    one_slave_g: if (SLAVE_COUNT = 1) generate
+        CS_N(0) <= chip_select_n;
+    end generate;
+
+    more_slaves_g: if (SLAVE_COUNT > 1) generate
+        cs_n_g : for i in 0 to SLAVE_COUNT-1 generate
+            cs_n_p : process (addr_reg, chip_select_n)
+            begin
+                if (addr_reg = i) then
+                    CS_N(i) <= chip_select_n;
+                else
+                    CS_N(i) <= '1';
+                end if;
+            end process;
+        end generate;
     end generate;
 
     -- -------------------------------------------------------------------------
@@ -210,13 +196,13 @@ begin
             if (load_data = '1') then
                 shreg <= DIN;
             elsif (second_edge_en = '1') then
-                shreg <= shreg(6 downto 0) & miso_reg;
+                shreg <= shreg(WORD_SIZE-2 downto 0) & miso_reg;
             end if;
         end if;
     end process;
 
     DOUT <= shreg;
-    MOSI <= shreg(7);
+    MOSI <= shreg(WORD_SIZE-1);
     
     -- -------------------------------------------------------------------------
     --  DATA OUT VALID RESISTER
@@ -305,7 +291,7 @@ begin
             when idle =>
                 master_ready   <= '1';
                 chip_select_n  <= not din_last_reg_n;
-                spi_clk_en     <= '0';
+                spi_clk_rst    <= '1';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
                 rx_data_vld    <= '0';
@@ -313,7 +299,7 @@ begin
             when first_edge =>
                 master_ready   <= '0';
                 chip_select_n  <= '0';
-                spi_clk_en     <= '1';
+                spi_clk_rst    <= '0';
                 first_edge_en  <= sys_clk_cnt_max;
                 second_edge_en <= '0';
                 rx_data_vld    <= '0';
@@ -321,7 +307,7 @@ begin
             when second_edge =>
                 master_ready   <= '0';
                 chip_select_n  <= '0';
-                spi_clk_en     <= '1';
+                spi_clk_rst    <= '0';
                 first_edge_en  <= '0';
                 second_edge_en <= sys_clk_cnt_max;
                 rx_data_vld    <= '0';
@@ -329,7 +315,7 @@ begin
             when transmit_end =>
                 master_ready   <= '0';
                 chip_select_n  <= '0';
-                spi_clk_en     <= '0';
+                spi_clk_rst    <= '1';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
                 rx_data_vld    <= sys_clk_cnt_max;
@@ -337,19 +323,19 @@ begin
             when transmit_gap =>
                 master_ready   <= '0';
                 chip_select_n  <= not din_last_reg_n;
-                spi_clk_en     <= '0';
+                spi_clk_rst    <= '1';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
                 rx_data_vld    <= '0';
 
             when others =>
                 master_ready   <= '0';
-                chip_select_n  <= '1';
-                spi_clk_en     <= '0';
+                chip_select_n  <= not din_last_reg_n;
+                spi_clk_rst    <= '1';
                 first_edge_en  <= '0';
                 second_edge_en <= '0';
                 rx_data_vld    <= '0';
         end case;
     end process;
 
-end RTL;
+end architecture;

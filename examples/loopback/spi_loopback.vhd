@@ -1,28 +1,9 @@
 --------------------------------------------------------------------------------
 -- PROJECT: SPI MASTER AND SLAVE FOR FPGA
 --------------------------------------------------------------------------------
--- NAME:    SPI_LOOPBACK
 -- AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
--- LICENSE: LGPL-3.0, please read LICENSE file
+-- LICENSE: The MIT License, please read LICENSE file
 -- WEBSITE: https://github.com/jakubcabal/spi-fpga
---------------------------------------------------------------------------------
--- COPYRIGHT NOTICE:
---------------------------------------------------------------------------------
--- SPI MASTER AND SLAVE FOR FPGA
--- Copyright (C) 2016 Jakub Cabal
---
--- This source file is free software: you can redistribute it and/or modify
--- it under the terms of the GNU Lesser General Public License as published by
--- the Free Software Foundation, either version 3 of the License, or
--- (at your option) any later version.
---
--- This source file is distributed in the hope that it will be useful,
--- but WITHOUT ANY WARRANTY; without even the implied warranty of
--- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
--- GNU Lesser General Public License for more details.
---
--- You should have received a copy of the GNU Lesser General Public License
--- along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --------------------------------------------------------------------------------
 
 library IEEE;
@@ -49,10 +30,11 @@ entity SPI_LOOPBACK is
         SSEG            : out std_logic_vector(7 downto 0);
         SSEG_AN         : out std_logic_vector(3 downto 0)
     );
-end SPI_LOOPBACK;
+end entity;
 
 architecture RTL of SPI_LOOPBACK is
 
+    signal reset           : std_logic;
     signal clk_en_1k       : std_logic;
 
     signal menu_mode_en    : std_logic;
@@ -60,8 +42,8 @@ architecture RTL of SPI_LOOPBACK is
 
     signal menu_cnt        : unsigned(1 downto 0);
     signal menu_mode_led   : std_logic_vector(3 downto 0);
-    signal m_cnt           : unsigned(7 downto 0);
-    signal s_cnt           : unsigned(7 downto 0);
+    signal m_cnt           : unsigned(3 downto 0);
+    signal s_cnt           : unsigned(3 downto 0);
     signal m_cnt_en        : std_logic;
     signal s_cnt_en        : std_logic;
 
@@ -79,6 +61,17 @@ architecture RTL of SPI_LOOPBACK is
 begin
 
     -- -------------------------------------------------------------------------
+    --  RESET SYNCHRONIZER
+    -- -------------------------------------------------------------------------
+
+    reset_sync_i : entity work.RST_SYNC
+    port map (
+        CLK        => CLK,
+        ASYNC_RST  => BTN_RST,
+        SYNCED_RST => reset
+    );
+
+    -- -------------------------------------------------------------------------
     --  CLOCK ENABLE GENERATOR
     -- -------------------------------------------------------------------------
 
@@ -88,7 +81,7 @@ begin
     )
     port map (
         CLK       => CLK,
-        ASYNC_RST => BTN_RST,
+        ASYNC_RST => reset,
         CLK_EN_1K => clk_en_1k
     );
 
@@ -99,33 +92,33 @@ begin
     btn1_debounce_i : entity work.BTN_DEBOUNCE
     port map (
         CLK        => CLK,
-        CLK_EN_1K  => clk_en_1k,
-        ASYNC_RST  => BTN_RST,
+        ASYNC_RST  => reset,
+        SAMPLE_EN  => clk_en_1k,
         BTN_RAW    => BTN_MENU_MODE,
         BTN_DEB    => open,
-        BTN_DEB_EN => menu_mode_en
+        BTN_DEB_RE => menu_mode_en
     );
 
     btn2_debounce_i : entity work.BTN_DEBOUNCE
     port map (
         CLK        => CLK,
-        CLK_EN_1K  => clk_en_1k,
-        ASYNC_RST  => BTN_RST,
+        ASYNC_RST  => reset,
+        SAMPLE_EN  => clk_en_1k,
         BTN_RAW    => BTN_MENU_ACTION,
         BTN_DEB    => open,
-        BTN_DEB_EN => menu_action_en
+        BTN_DEB_RE => menu_action_en
     );
 
     -- -------------------------------------------------------------------------
     --  MENU MODE COUNTER
     -- -------------------------------------------------------------------------
 
-    menu_cnt_p : process (CLK)
+    menu_cnt_p : process (CLK, reset)
     begin
-        if (rising_edge(CLK)) then
-            if (BTN_RST = '1') then
-                menu_cnt <= (others => '0');
-            elsif (menu_mode_en = '1') then
+        if (reset = '1') then
+            menu_cnt <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (menu_mode_en = '1') then
                 if (menu_cnt = "11") then
                     menu_cnt <= (others => '0');
                 else
@@ -175,13 +168,13 @@ begin
     --  MASTER COUNTER
     -- -------------------------------------------------------------------------
 
-    m_cnt_p : process (CLK)
+    m_cnt_p : process (CLK, reset)
     begin
-        if (rising_edge(CLK)) then
-            if (BTN_RST = '1') then
-                m_cnt <= (others => '0');
-            elsif (m_cnt_en = '1') then
-                if (m_cnt = "00001111") then
+        if (reset = '1') then
+            m_cnt <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (m_cnt_en = '1') then
+                if (m_cnt = "1111") then
                     m_cnt <= (others => '0');
                 else
                     m_cnt <= m_cnt + 1;
@@ -190,19 +183,19 @@ begin
         end if;
     end process;
 
-    m_din <= std_logic_vector(m_cnt);
+    m_din <= std_logic_vector(m_cnt) & std_logic_vector(m_cnt);
 
     -- -------------------------------------------------------------------------
     --  SLAVE COUNTER
     -- -------------------------------------------------------------------------
 
-    s_cnt_p : process (CLK)
+    s_cnt_p : process (CLK, reset)
     begin
-        if (rising_edge(CLK)) then
-            if (BTN_RST = '1') then
-                s_cnt <= (others => '0');
-            elsif (s_cnt_en = '1') then
-                if (s_cnt = "00001111") then
+        if (reset = '1') then
+            s_cnt <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (s_cnt_en = '1') then
+                if (s_cnt = "1111") then
                     s_cnt <= (others => '0');
                 else
                     s_cnt <= s_cnt + 1;
@@ -211,7 +204,7 @@ begin
         end if;
     end process;
 
-    s_din <= std_logic_vector(s_cnt);
+    s_din <= std_logic_vector(s_cnt) & std_logic_vector(s_cnt);
 
     -- -------------------------------------------------------------------------
     --  SPI MASTER AND SLAVE
@@ -220,33 +213,33 @@ begin
     master_i : entity work.SPI_MASTER
     generic map(
         CLK_FREQ    => 50e6,
-        SCLK_FREQ   => 2e6,
+        SCLK_FREQ   => 1e6,
         SLAVE_COUNT => 1
     )
     port map (
         CLK      => CLK,
-        RST      => BTN_RST,
+        RST      => reset,
         -- SPI MASTER INTERFACE
         SCLK     => M_SCLK,
         CS_N(0)  => M_CS_N,
         MOSI     => M_MOSI,
         MISO     => M_MISO,
         -- USER INTERFACE
-        ADDR     => (others => '0'),
+        DIN_ADDR => (others => '0'),
         DIN      => m_din,
         DIN_LAST => '1',
         DIN_VLD  => m_din_vld,
-        READY    => open,
+        DIN_RDY  => open,
         DOUT     => m_dout,
         DOUT_VLD => m_dout_vld
     );
 
-    m_dout_reg_p : process (CLK)
+    m_dout_reg_p : process (CLK, reset)
     begin
-        if (rising_edge(CLK)) then
-            if (BTN_RST = '1') then
-                m_dout_reg <= (others => '0');
-            elsif (m_dout_vld = '1') then
+        if (reset = '1') then
+            m_dout_reg <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (m_dout_vld = '1') then
                 m_dout_reg <= m_dout(3 downto 0);
             end if;
         end if;
@@ -255,7 +248,7 @@ begin
     slave_i : entity work.SPI_SLAVE
     port map (
         CLK      => CLK,
-        RST      => BTN_RST,
+        RST      => reset,
         -- SPI MASTER INTERFACE
         SCLK     => S_SCLK,
         CS_N     => S_CS_N,
@@ -264,17 +257,17 @@ begin
         -- USER INTERFACE
         DIN      => s_din,
         DIN_VLD  => s_din_vld,
-        READY    => open,
+        DIN_RDY  => open,
         DOUT     => s_dout,
         DOUT_VLD => s_dout_vld
     );
 
-    s_dout_reg_p : process (CLK)
+    s_dout_reg_p : process (CLK, reset)
     begin
-        if (rising_edge(CLK)) then
-            if (BTN_RST = '1') then
-                s_dout_reg <= (others => '0');
-            elsif (s_dout_vld = '1') then
+        if (reset = '1') then
+            s_dout_reg <= (others => '0');
+        elsif (rising_edge(CLK)) then
+            if (s_dout_vld = '1') then
                 s_dout_reg <= s_dout(3 downto 0);
             end if;
         end if;
@@ -288,7 +281,7 @@ begin
     port map (
         CLK       => CLK,
         CLK_EN_1K => clk_en_1k,
-        ASYNC_RST => BTN_RST,
+        ASYNC_RST => reset,
         DATA0     => s_din(3 downto 0),
         DATA1     => s_dout_reg,
         DATA2     => m_din(3 downto 0),
@@ -298,4 +291,4 @@ begin
         SSEG_AN   => SSEG_AN
     );
 
-end RTL;
+end architecture;

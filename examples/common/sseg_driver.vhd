@@ -1,10 +1,9 @@
 --------------------------------------------------------------------------------
--- PROJECT: FPGA MISC
+-- PROJECT: SPI MASTER AND SLAVE FOR FPGA
 --------------------------------------------------------------------------------
--- NAME:    SSEG_DRIVER
 -- AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
--- LICENSE: The MIT License
--- WEBSITE: https://github.com/jakubcabal/fpga-misc
+-- LICENSE: The MIT License, please read LICENSE file
+-- WEBSITE: https://github.com/jakubcabal/spi-fpga
 --------------------------------------------------------------------------------
 
 library IEEE;
