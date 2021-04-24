@@ -107,6 +107,4 @@ Please read [README file of SPI loopback example design](examples/loopback/READM
 
 ## License:
 
-The SPI master and SPI slave controllers are available under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
-
-Please read [LICENSE file](LICENSE).
+This UART controller is available under the MIT license. Please read [LICENSE file](LICENSE).
