@@ -57,6 +57,12 @@ architecture RTL of SPI_SLAVE is
 
     constant BIT_CNT_WIDTH : natural := natural(ceil(log2(real(WORD_SIZE))));
 
+    signal sclk_meta          : std_logic;
+    signal cs_n_meta          : std_logic;
+    signal mosi_meta          : std_logic;
+    signal sclk_reg           : std_logic;
+    signal cs_n_reg           : std_logic;
+    signal mosi_reg           : std_logic;
     signal spi_clk_reg        : std_logic;
     signal spi_clk_redge_en   : std_logic;
     signal spi_clk_fedge_en   : std_logic;
@@ -72,6 +78,23 @@ architecture RTL of SPI_SLAVE is
 begin
 
     -- -------------------------------------------------------------------------
+    --  INPUT SYNCHRONIZATION REGISTERS
+    -- -------------------------------------------------------------------------
+
+    -- Synchronization registers to eliminate possible metastability.
+    sync_ffs_p : process (CLK)
+    begin
+        if (rising_edge(CLK)) then
+            sclk_meta <= SCLK;
+            cs_n_meta <= CS_N;
+            mosi_meta <= MOSI;
+            sclk_reg  <= sclk_meta;
+            cs_n_reg  <= cs_n_meta;
+            mosi_reg  <= mosi_meta;
+        end if;
+    end process;
+
+    -- -------------------------------------------------------------------------
     --  SPI CLOCK REGISTER
     -- -------------------------------------------------------------------------
 
@@ -82,7 +105,7 @@ begin
             if (RST = '1') then
                 spi_clk_reg <= '0';
             else
-                spi_clk_reg <= SCLK;
+                spi_clk_reg <= sclk_reg;
             end if;
         end if;
     end process;
@@ -91,23 +114,23 @@ begin
     --  SPI CLOCK EDGES FLAGS
     -- -------------------------------------------------------------------------
 
-    -- Falling edge is detect when SCLK=0 and spi_clk_reg=1.
-    spi_clk_fedge_en <= not SCLK and spi_clk_reg;
-    -- Rising edge is detect when SCLK=1 and spi_clk_reg=0.
-    spi_clk_redge_en <= SCLK and not spi_clk_reg;
+    -- Falling edge is detect when sclk_reg=0 and spi_clk_reg=1.
+    spi_clk_fedge_en <= not sclk_reg and spi_clk_reg;
+    -- Rising edge is detect when sclk_reg=1 and spi_clk_reg=0.
+    spi_clk_redge_en <= sclk_reg and not spi_clk_reg;
 
     -- -------------------------------------------------------------------------
     --  RECEIVED BITS COUNTER
     -- -------------------------------------------------------------------------
 
     -- The counter counts received bits from the master. Counter is enabled when
-    -- falling edge of SPI clock is detected and not asserted CS_N.
+    -- falling edge of SPI clock is detected and not asserted cs_n_reg.
     bit_cnt_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
             if (RST = '1') then
                 bit_cnt <= (others => '0');
-            elsif (spi_clk_fedge_en = '1' and CS_N = '0') then
+            elsif (spi_clk_fedge_en = '1' and cs_n_reg = '0') then
                 if (bit_cnt_max = '1') then
                     bit_cnt <= (others => '0');
                 else
@@ -156,7 +179,7 @@ begin
             if (RST = '1') then
                 shreg_busy <= '0';
             else
-                if (DIN_VLD = '1' and (CS_N = '1' or rx_data_vld = '1')) then
+                if (DIN_VLD = '1' and (cs_n_reg = '1' or rx_data_vld = '1')) then
                     shreg_busy <= '1';
                 elsif (rx_data_vld = '1') then
                     shreg_busy <= '0';
@@ -167,9 +190,9 @@ begin
         end if;
     end process;
 
-    -- The SPI slave is ready for accept new input data when CS_N is assert and
+    -- The SPI slave is ready for accept new input data when cs_n_reg is assert and
     -- shift register not busy or when received data are valid.
-    slave_ready <= (CS_N and not shreg_busy) or rx_data_vld;
+    slave_ready <= (cs_n_reg and not shreg_busy) or rx_data_vld;
     
     -- The new input data is loaded into the shift register when the SPI slave
     -- is ready and input data are valid.
@@ -186,8 +209,8 @@ begin
         if (rising_edge(CLK)) then
             if (load_data_en = '1') then
                 data_shreg <= DIN;
-            elsif (spi_clk_redge_en = '1' and CS_N = '0') then
-                data_shreg <= data_shreg(WORD_SIZE-2 downto 0) & MOSI;
+            elsif (spi_clk_redge_en = '1' and cs_n_reg = '0') then
+                data_shreg <= data_shreg(WORD_SIZE-2 downto 0) & mosi_reg;
             end if;
         end if;
     end process;
@@ -197,13 +220,13 @@ begin
     -- -------------------------------------------------------------------------
 
     -- The output MISO register ensures that the bits are transmit to the master
-    -- when is not assert CS_N and falling edge of SPI clock is detected.
+    -- when is not assert cs_n_reg and falling edge of SPI clock is detected.
     miso_p : process (CLK)
     begin
         if (rising_edge(CLK)) then
             if (load_data_en = '1') then
                 MISO <= DIN(WORD_SIZE-1);
-            elsif (spi_clk_fedge_en = '1' and CS_N = '0') then
+            elsif (spi_clk_fedge_en = '1' and cs_n_reg = '0') then
                 MISO <= data_shreg(WORD_SIZE-1);
             end if;
         end if;
