@@ -1,10 +1,10 @@
 # SPI MASTER AND SLAVE FOR FPGA
 
-The SPI master and SPI slave are simple controllers for communication between FPGA and various peripherals via the SPI interface. The SPI master and SPI slave have been implemented using VHDL 93 and are applicable to any FPGA.
+The [SPI master](#spi-master) and [SPI slave](#spi-slave) are simple controllers for communication between FPGA and various peripherals via the SPI interface. The SPI master and SPI slave have been implemented using VHDL 93 and are applicable to any FPGA.
 
 **The SPI master and SPI slave controllers support only SPI mode 0 (CPOL=0, CPHA=0)!**
 
-The SPI master and SPI slave controllers were simulated and tested in hardware. I use the GHDL tool for CI: automated VHDL simulations in the GitHub Actions environment ([setup-ghdl-ci](https://github.com/ghdl/setup-ghdl-ci)). If you have a question or you have a tip for improvement, send me an e-mail or create a issue.
+The SPI master and SPI slave controllers were simulated and tested in hardware. I use the GHDL tool for CI: automated VHDL simulations in the GitHub Actions environment ([setup-ghdl-ci](https://github.com/ghdl/setup-ghdl-ci)). If you have a question or an improvement tip, send me an e-mail or create an issue.
 
 ## SPI master
 
@@ -38,9 +38,17 @@ DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI
 DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
 ```
 
+### Resource usage:
+
+LE | FF | M9K | Fmax
+---|----|-----|-----------
+34 | 23 | 0   | 330.1 MHz
+
+*Implementation was performed using Quartus Prime Lite Edition 20.1.0 for Intel Cyclone 10 FPGA (10CL025YU256C8G) with default generics.*
+
 ### Simulation:
 
-A simulation is prepared in the ```sim/``` folder. You can use the prepared TCL script to run simulation in ModelSim.
+A simulation is prepared in the [```sim/```](sim/) folder. You can use the prepared TCL script to run simulation in ModelSim.
 ```
 vsim -do spi_master_tb_msim_run.tcl
 ```
@@ -76,9 +84,17 @@ DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI
 DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
 ```
 
+### Resource usage:
+
+LE | FF | M9K | Fmax
+---|----|-----|-----------
+29 | 21 | 0   | 324.5 MHz
+
+*Implementation was performed using Quartus Prime Lite Edition 20.1.0 for Intel Cyclone 10 FPGA (10CL025YU256C8G) with default generics.*
+
 ### Simulation:
 
-A simulation is prepared in the ```sim/``` folder. You can use the prepared TCL script to run simulation in ModelSim.
+A simulation is prepared in the [```sim/```](sim/) folder. You can use the prepared TCL script to run simulation in ModelSim.
 ```
 vsim -do spi_slave_tb_msim_run.tcl
 ```
@@ -88,23 +104,40 @@ Or it is possible to run the simulation using the [GHDL tool](https://github.com
 ./spi_slave_tb_ghdl_run.sh
 ```
 
-## Table of resource usage summary:
+## Examples:
 
-CONTROLLER | LE | FF | M9K | Fmax
-:---:|:---:|:---:|:---:|:---:
-SPI MASTER | 34 | 23 | 0 | 334.2 MHz
-SPI SLAVE | 24 | 15 | 0 | 343.7 MHz
+### Spirit Level:
 
-*Synthesis have been performed using Quartus Prime 20.1 Lite Edition for FPGA Altera Cyclone IV EP4CE6E22C8 with default generics*
+The [Spirit Level example design](examples/spirit_level) shows one possible use of the SPI Master controller. The example design is prepared for [FPGA board CYC1000](https://shop.trenz-electronic.de/en/TEI0003-02-CYC1000-with-Cyclone-10-FPGA-8-MByte-SDRAM) with Intel Cyclone 10 FPGA (10CL025YU256C8G) and [digital accelerometer (LIS3DH)](https://www.st.com/resource/en/datasheet/lis3dh.pdf). Here you can find [the documentation of the CYC1000 board](https://www.trenz-electronic.de/fileadmin/docs/Trenz_Electronic/Modules_and_Module_Carriers/2.5x6.15/TEI0003/REV02/Documents/CYC1000%20User%20Guide.pdf). In this design, the SPI Master controller is used to configure and read data from the accelerometer. The LEDs on the board show the values from the accelerometer in the form of a spirit level. You can watch the Spirit Level example [video on YouTube](https://youtu.be/EI1BEAkZu5Q).
 
-## The SPI loopback example design:
+[![Spirit Level example video](docs/spirit_level_example.gif)](https://youtu.be/EI1BEAkZu5Q)
 
-The SPI loopback example design is for testing data transfer between SPI master and SPI slave over external wires.
+### SPI loopback:
 
-Please read [README file of SPI loopback example design](examples/loopback/README.md).
+The [SPI loopback example design](examples/loopback) allows testing transfers between SPI master and SPI slave over external wires. The example design is prepared for FPGA board [EP4CE6 Starter Board](http://www.ebay.com/itm/111975895262) with Altera FPGA Cyclone IV (EP4CE6E22C8), few buttons and a seven-segment display (four digit). You can watch the SPI loopback example [video on YouTube](https://youtu.be/-TbtB6Sm2Xk).
 
 [![Video of SPI loopback example design](https://img.youtube.com/vi/-TbtB6Sm2Xk/0.jpg)](https://youtu.be/-TbtB6Sm2Xk)
 
+Display description (from right on board in video):
+
+```
+Digit0 = value on SPI slave input
+Digit1 = value on SPI slave output
+Digit2 = value on SPI master input
+Digit3 = value on SPI master output
+```
+
+Buttons description (from right on board in video):
+
+```
+BTN_ACTION (in mode0) = setup value on SPI slave input
+BTN_ACTION (in mode1) = write (set valid) of SPI slave input value
+BTN_ACTION (in mode2) = setup value on SPI master input
+BTN_ACTION (in mode3) = write (set valid) of SPI slave input value and start transfer between SPI master and SPI slave
+BTN_MODE = switch between modes (mode0 = light decimal point on digit0,...)
+BTN_RESET = reset FPGA design
+```
+
 ## License:
 
-This UART controller is available under the MIT license. Please read [LICENSE file](LICENSE).
+This whole repository (include SPI master and SPI slave controllers) is available under the MIT license. Please read [LICENSE file](LICENSE).
