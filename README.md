@@ -4,7 +4,89 @@ The SPI master and SPI slave are simple controllers for communication between FP
 
 **The SPI master and SPI slave controllers support only SPI mode 0 (CPOL=0, CPHA=0)!**
 
-The SPI master and SPI slave controllers were simulated and tested in hardware. If you have a question or you have a tip for improvement, send me an e-mail or create a issue.
+The SPI master and SPI slave controllers were simulated and tested in hardware. I use the GHDL tool for CI: automated VHDL simulations in the GitHub Actions environment ([setup-ghdl-ci](https://github.com/ghdl/setup-ghdl-ci)). If you have a question or you have a tip for improvement, send me an e-mail or create a issue.
+
+## SPI master
+
+### Generics:
+
+```vhdl
+CLK_FREQ    : natural := 50e6; -- set system clock frequency in Hz
+SCLK_FREQ   : natural := 5e6;  -- set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10)
+WORD_SIZE   : natural := 8;    -- size of transfer word in bits, must be power of two
+SLAVE_COUNT : natural := 1     -- count of SPI slaves
+```
+
+### Ports:
+
+```vhdl
+CLK      : in  std_logic; -- system clock
+RST      : in  std_logic; -- high active synchronous reset
+-- SPI MASTER INTERFACE
+SCLK     : out std_logic; -- SPI clock
+CS_N     : out std_logic_vector(SLAVE_COUNT-1 downto 0); -- SPI chip select, active in low
+MOSI     : out std_logic; -- SPI serial data from master to slave
+MISO     : in  std_logic; -- SPI serial data from slave to master
+-- INPUT USER INTERFACE
+DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- data for transmission to SPI slave
+DIN_ADDR : in  std_logic_vector(natural(ceil(log2(real(SLAVE_COUNT))))-1 downto 0); -- SPI slave address
+DIN_LAST : in  std_logic; -- when DIN_LAST = 1, last data word, after transmit will be asserted CS_N
+DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, data for transmission are valid
+DIN_RDY  : out std_logic; -- when DIN_RDY = 1, SPI master is ready to accept valid data for transmission
+-- OUTPUT USER INTERFACE
+DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI slave
+DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
+```
+
+### Simulation:
+
+A simulation is prepared in the ```sim/``` folder. You can use the prepared TCL script to run simulation in ModelSim.
+```
+vsim -do spi_master_tb_msim_run.tcl
+```
+
+Or it is possible to run the simulation using the [GHDL tool](https://github.com/ghdl/ghdl). Linux users can use the prepared bash script to run the simulation in GHDL:
+```
+./spi_master_tb_ghdl_run.sh
+```
+
+## SPI slave
+
+### Generics:
+
+```vhdl
+WORD_SIZE : natural := 8; -- size of transfer word in bits, must be power of two
+```
+
+### Ports:
+
+```vhdl
+CLK      : in  std_logic; -- system clock
+RST      : in  std_logic; -- high active synchronous reset
+-- SPI SLAVE INTERFACE
+SCLK     : in  std_logic; -- SPI clock
+CS_N     : in  std_logic; -- SPI chip select, active in low
+MOSI     : in  std_logic; -- SPI serial data from master to slave
+MISO     : out std_logic; -- SPI serial data from slave to master
+-- USER INTERFACE
+DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- data for transmission to SPI master
+DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, data for transmission are valid
+DIN_RDY  : out std_logic; -- when DIN_RDY = 1, SPI slave is ready to accept valid data for transmission
+DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI master
+DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
+```
+
+### Simulation:
+
+A simulation is prepared in the ```sim/``` folder. You can use the prepared TCL script to run simulation in ModelSim.
+```
+vsim -do spi_slave_tb_msim_run.tcl
+```
+
+Or it is possible to run the simulation using the [GHDL tool](https://github.com/ghdl/ghdl). Linux users can use the prepared bash script to run the simulation in GHDL:
+```
+./spi_slave_tb_ghdl_run.sh
+```
 
 ## Table of resource usage summary:
 
@@ -28,60 +110,3 @@ Please read [README file of SPI loopback example design](example/README.md).
 The SPI master and SPI slave controllers are available under the GNU LESSER GENERAL PUBLIC LICENSE Version 3.
 
 Please read [LICENSE file](LICENSE).
-
-# SPI master
-
-## Table of generics:
-
-Generic name | Type | Default value | Generic description
----|:---:|:---:|:---
-CLK_FREQ | natural | 50e6 | System clock frequency in Hz.
-SCLK_FREQ | natural | 5e6 | Set SPI clock frequency in Hz (condition: SCLK_FREQ <= CLK_FREQ/10).
-WORD_SIZE | natural | 8 | Size of transfer word in bits, must be power of two
-SLAVE_COUNT | natural | 1 | Count of SPI slave controllers.
-
-## Table of inputs and outputs ports:
-
-Port name | IN/OUT | Width [b]| Port description
----|:---:|:---:|---
-CLK | IN | 1 | System clock.
-RST | IN | 1 | High active synchronous reset.
---- | --- | --- | ---
-SCLK | OUT | 1 | SPI clock.
-CS_N | OUT | SLAVE_COUNT | SPI chip select, active in low.
-MOSI | OUT | 1 | SPI serial data from master to slave.
-MISO | IN | 1 | SPI serial data from slave to master.
---- | --- | --- | ---
-DIN_ADDR | IN | log2(SLAVE_COUNT) | SPI slave address.
-DIN | IN | WORD_SIZE | Input data for SPI slave.
-DIN_LAST | IN | 1 | When DIN_LAST = 1, after transmit these input data is asserted CS_N.
-DIN_VLD | IN | 1 | When DIN_VLD = 1, input data are valid.
-DIN_RDY | OUT | 1 | When DIN_RDY = 1, valid input data are accept.
-DOUT | OUT | WORD_SIZE | Output data from SPI slave.
-DOUT_VLD | OUT | 1 | When DOUT_VLD = 1, output data are valid.
-
-# SPI slave
-
-## Table of generics:
-
-Generic name | Type | Default value | Generic description
----|:---:|:---:|:---
-WORD_SIZE | natural | 8 | Size of transfer word in bits, must be power of two
-
-## Table of inputs and outputs ports:
-
-Port name | IN/OUT | Width [b]| Port description
----|:---:|:---:|---
-CLK | IN | 1 | System clock.
-RST | IN | 1 | High active synchronous reset.
---- | --- | --- | ---
-SCLK | IN | 1 | SPI clock.
-CS_N | IN | 1 | SPI chip select active in low.
-MOSI | IN | 1 | SPI serial data from master to slave.
-MISO | OUT | 1 | SPI serial data from slave to master.
---- | --- | --- | ---
-DIN | IN | WORD_SIZE | Input data for SPI master.
-DIN_VLD | IN | 1 | When DIN_VLD = 1, input data are valid.
-DIN_RDY | OUT | 1 | When DIN_RDY = 1, valid input data are accept.
-DOUT | OUT | WORD_SIZE | Output data from SPI master.
-DOUT_VLD | OUT | 1 | When DOUT_VLD = 1, output data are valid.
