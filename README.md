@@ -101,7 +101,7 @@ SPI SLAVE | 24 | 15 | 0 | 343.7 MHz
 
 The SPI loopback example design is for testing data transfer between SPI master and SPI slave over external wires.
 
-Please read [README file of SPI loopback example design](example/README.md).
+Please read [README file of SPI loopback example design](examples/loopback/README.md).
 
 [![Video of SPI loopback example design](https://img.youtube.com/vi/-TbtB6Sm2Xk/0.jpg)](https://youtu.be/-TbtB6Sm2Xk)
 

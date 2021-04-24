@@ -13,12 +13,12 @@ set_global_assignment -name DEVICE EP4CE6E22C8
 set_global_assignment -name TOP_LEVEL_ENTITY SPI_LOOPBACK
 
 # PROJECT VHDL FILES
-set_global_assignment -name VHDL_FILE ../../rtl/spi_slave.vhd
-set_global_assignment -name VHDL_FILE ../../rtl/spi_master.vhd
-set_global_assignment -name VHDL_FILE ../comp/rst_sync.vhd
-set_global_assignment -name VHDL_FILE ../comp/clk_en_gen.vhd
-set_global_assignment -name VHDL_FILE ../comp/sseg_driver.vhd
-set_global_assignment -name VHDL_FILE ../comp/btn_debounce.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl/spi_slave.vhd
+set_global_assignment -name VHDL_FILE ../../../rtl/spi_master.vhd
+set_global_assignment -name VHDL_FILE ../../common/rst_sync.vhd
+set_global_assignment -name VHDL_FILE ../../common/clk_en_gen.vhd
+set_global_assignment -name VHDL_FILE ../../common/sseg_driver.vhd
+set_global_assignment -name VHDL_FILE ../../common/btn_debounce.vhd
 set_global_assignment -name VHDL_FILE ../spi_loopback.vhd
 
 # FPGA PINS ASSIGNMENT
