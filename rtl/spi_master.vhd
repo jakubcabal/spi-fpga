@@ -160,15 +160,21 @@ begin
         end if;
     end process;
 
-    cs_n_g : for i in 0 to SLAVE_COUNT-1 generate
-        cs_n_p : process (addr_reg, chip_select_n)
-        begin
-            if (addr_reg = i) then
-                CS_N(i) <= chip_select_n;
-            else
-                CS_N(i) <= '1';
-            end if;
-        end process;
+    one_slave_g: if (SLAVE_COUNT = 1) generate
+        CS_N(0) <= chip_select_n;
+    end generate;
+
+    more_slaves_g: if (SLAVE_COUNT > 1) generate
+        cs_n_g : for i in 0 to SLAVE_COUNT-1 generate
+            cs_n_p : process (addr_reg, chip_select_n)
+            begin
+                if (addr_reg = i) then
+                    CS_N(i) <= chip_select_n;
+                else
+                    CS_N(i) <= '1';
+                end if;
+            end process;
+        end generate;
     end generate;
 
     -- -------------------------------------------------------------------------
