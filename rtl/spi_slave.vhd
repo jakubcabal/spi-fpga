@@ -45,11 +45,11 @@ entity SPI_SLAVE is
         MOSI     : in  std_logic; -- SPI serial data from master to slave
         MISO     : out std_logic; -- SPI serial data from slave to master
         -- USER INTERFACE
-        DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- input data for SPI master
-        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, input data are valid
-        DIN_RDY  : out std_logic; -- when DIN_RDY = 1, valid input data are accept
-        DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- output data from SPI master
-        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, output data are valid
+        DIN      : in  std_logic_vector(WORD_SIZE-1 downto 0); -- data for transmission to SPI master
+        DIN_VLD  : in  std_logic; -- when DIN_VLD = 1, data for transmission are valid
+        DIN_RDY  : out std_logic; -- when DIN_RDY = 1, SPI slave is ready to accept valid data for transmission
+        DOUT     : out std_logic_vector(WORD_SIZE-1 downto 0); -- received data from SPI master
+        DOUT_VLD : out std_logic  -- when DOUT_VLD = 1, received data are valid
     );
 end entity;
 
