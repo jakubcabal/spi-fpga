@@ -1,0 +1,9 @@
+#-------------------------------------------------------------------------------
+# PROJECT: SIMPLE UART FOR FPGA
+#-------------------------------------------------------------------------------
+# AUTHORS: Jakub Cabal <jakubcabal@gmail.com>
+# LICENSE: The MIT License, please read LICENSE file
+# WEBSITE: https://github.com/jakubcabal/uart-for-fpga
+#-------------------------------------------------------------------------------
+
+PROJECT_REVISION = "UART_LOOPBACK_CYC1000"
